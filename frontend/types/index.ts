@@ -31,6 +31,7 @@ export interface User {
   avatar?: string
   isActive: boolean
   lastLogin?: string
+  permissions?: string[]
   createdAt: string
   updatedAt: string
 }

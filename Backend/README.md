@@ -103,7 +103,7 @@ PORT=3000
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=manufacturing_erp
+DB_NAME=ERPDB
 DB_USER=postgres
 DB_PASSWORD=your_password
 DB_POOL_MAX=10
@@ -135,7 +135,7 @@ SMTP_PASS=your-app-password
 ### 4. Database Setup
 ```bash
 # Create database
-createdb manufacturing_erp
+createdb ERPDB
 
 # Run migrations
 npm run db:migrate

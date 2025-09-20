@@ -1,112 +1,161 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { Product } from "@/types"
+import { productService, type Product as ApiProduct, type CreateProductRequest, type UpdateProductRequest } from "@/lib/services/productService"
+import { ApiError } from "@/lib/api"
 
-// Mock data for products
-const mockProducts: Product[] = [
-  {
-    id: "P-001",
-    name: "Wooden Legs",
-    description: "Oak wooden legs for tables and chairs",
-    unit: "pieces",
-    currentStock: 120,
-    minStock: 50,
-    maxStock: 200,
-    unitCost: 15.0,
-    category: "raw-material",
-  },
-  {
-    id: "P-002",
-    name: "Wooden Top",
-    description: "Oak wooden table top",
-    unit: "pieces",
-    currentStock: 25,
-    minStock: 10,
-    maxStock: 50,
-    unitCost: 45.0,
-    category: "raw-material",
-  },
-  {
-    id: "P-003",
-    name: "Screws",
-    description: "Wood screws for assembly",
-    unit: "pieces",
-    currentStock: 500,
-    minStock: 200,
-    maxStock: 1000,
-    unitCost: 0.25,
-    category: "raw-material",
-  },
-  {
-    id: "P-004",
-    name: "Varnish Bottle",
-    description: "Wood varnish for finishing",
-    unit: "bottles",
-    currentStock: 15,
-    minStock: 5,
-    maxStock: 30,
-    unitCost: 12.0,
-    category: "raw-material",
-  },
-  {
-    id: "P-005",
-    name: "Wooden Table",
-    description: "Complete wooden dining table",
-    unit: "pieces",
-    currentStock: 8,
-    minStock: 2,
-    maxStock: 20,
-    unitCost: 150.0,
-    category: "finished-good",
-  },
-  {
-    id: "P-006",
-    name: "Office Chair",
-    description: "Ergonomic office chair with wooden frame",
-    unit: "pieces",
-    currentStock: 12,
-    minStock: 5,
-    maxStock: 25,
-    unitCost: 120.0,
-    category: "finished-good",
-  },
-]
+// Helper function to map API product to frontend product
+const mapApiProductToFrontend = (apiProduct: ApiProduct): Product => {
+  return {
+    id: apiProduct.id,
+    name: apiProduct.name,
+    code: apiProduct.sku,
+    description: apiProduct.description || "",
+    unit: "pieces", // Default unit, could be enhanced with UOM lookup
+    currentStock: 0, // This would come from inventory/stock movements
+    availableStock: 0,
+    reservedStock: 0,
+    minStock: apiProduct.minStockLevel,
+    maxStock: apiProduct.maxStockLevel,
+    reorderPoint: apiProduct.reorderPoint,
+    unitCost: apiProduct.costPrice,
+    sellingPrice: apiProduct.sellingPrice,
+    category: mapApiTypeToCategory(apiProduct.type),
+    leadTime: apiProduct.leadTimeDays,
+    isActive: apiProduct.isActive,
+    createdAt: apiProduct.createdAt,
+    updatedAt: apiProduct.updatedAt,
+  }
+}
+
+// Helper function to map frontend product to API create request
+const mapFrontendToApiCreate = (product: Omit<Product, "id">): CreateProductRequest => {
+  return {
+    sku: product.code || `PROD-${Date.now()}`,
+    name: product.name,
+    description: product.description,
+    type: mapCategoryToApiType(product.category),
+    cost_price: product.unitCost,
+    selling_price: product.sellingPrice || 0,
+    min_stock_level: product.minStock,
+    max_stock_level: product.maxStock,
+    reorder_point: product.reorderPoint || product.minStock,
+    lead_time_days: product.leadTime || 0,
+    is_active: product.isActive !== false,
+  }
+}
+
+// Helper function to map frontend product to API update request
+const mapFrontendToApiUpdate = (updates: Partial<Product>): UpdateProductRequest => {
+  const apiUpdates: UpdateProductRequest = {}
+
+  if (updates.code !== undefined) apiUpdates.sku = updates.code
+  if (updates.name !== undefined) apiUpdates.name = updates.name
+  if (updates.description !== undefined) apiUpdates.description = updates.description
+  if (updates.category !== undefined) apiUpdates.type = mapCategoryToApiType(updates.category)
+  if (updates.unitCost !== undefined) apiUpdates.cost_price = updates.unitCost
+  if (updates.sellingPrice !== undefined) apiUpdates.selling_price = updates.sellingPrice
+  if (updates.minStock !== undefined) apiUpdates.min_stock_level = updates.minStock
+  if (updates.maxStock !== undefined) apiUpdates.max_stock_level = updates.maxStock
+  if (updates.reorderPoint !== undefined) apiUpdates.reorder_point = updates.reorderPoint
+  if (updates.leadTime !== undefined) apiUpdates.lead_time_days = updates.leadTime
+  if (updates.isActive !== undefined) apiUpdates.is_active = updates.isActive
+
+  return apiUpdates
+}
+
+// Helper functions for category mapping
+const mapApiTypeToCategory = (type: string): Product['category'] => {
+  switch (type) {
+    case 'raw_material': return 'raw-material'
+    case 'finished_good': return 'finished-good'
+    case 'work_in_progress': return 'component'
+    default: return 'raw-material'
+  }
+}
+
+const mapCategoryToApiType = (category: Product['category']): 'raw_material' | 'work_in_progress' | 'finished_good' => {
+  switch (category) {
+    case 'raw-material': return 'raw_material'
+    case 'finished-good': return 'finished_good'
+    case 'component': return 'work_in_progress'
+    default: return 'raw_material'
+  }
+}
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchProducts = async () => {
+  // Fetch products from API
+  const fetchProducts = useCallback(async () => {
+    try {
       setLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setProducts(mockProducts)
+      setError(null)
+      const response = await productService.getProducts({ status: 'active' })
+      const mappedProducts = response.products.map(mapApiProductToFrontend)
+      setProducts(mappedProducts)
+    } catch (err) {
+      const errorMessage = err instanceof ApiError ? err.message : 'Failed to fetch products'
+      setError(errorMessage)
+      console.error('Error fetching products:', err)
+    } finally {
       setLoading(false)
     }
-
-    fetchProducts()
   }, [])
 
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
   const createProduct = async (productData: Omit<Product, "id">) => {
-    const newProduct: Product = {
-      ...productData,
-      id: `P-${String(products.length + 1).padStart(3, "0")}`,
+    try {
+      setError(null)
+      const apiRequest = mapFrontendToApiCreate(productData)
+      const apiProduct = await productService.createProduct(apiRequest)
+      const newProduct = mapApiProductToFrontend(apiProduct)
+      setProducts((prev) => [...prev, newProduct])
+      return newProduct
+    } catch (err) {
+      const errorMessage = err instanceof ApiError ? err.message : 'Failed to create product'
+      setError(errorMessage)
+      throw new Error(errorMessage)
     }
-    setProducts((prev) => [...prev, newProduct])
-    return newProduct
   }
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
-    setProducts((prev) => prev.map((product) => (product.id === id ? { ...product, ...updates } : product)))
+    try {
+      setError(null)
+      const apiUpdates = mapFrontendToApiUpdate(updates)
+      const apiProduct = await productService.updateProduct(id, apiUpdates)
+      const updatedProduct = mapApiProductToFrontend(apiProduct)
+      setProducts((prev) => prev.map((product) => (product.id === id ? updatedProduct : product)))
+      return updatedProduct
+    } catch (err) {
+      const errorMessage = err instanceof ApiError ? err.message : 'Failed to update product'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    }
   }
 
   const deleteProduct = async (id: string) => {
-    setProducts((prev) => prev.filter((product) => product.id !== id))
+    try {
+      setError(null)
+      await productService.deleteProduct(id)
+      setProducts((prev) => prev.filter((product) => product.id !== id))
+    } catch (err) {
+      const errorMessage = err instanceof ApiError ? err.message : 'Failed to delete product'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    }
   }
 
   const adjustStock = async (id: string, quantity: number, type: "in" | "out") => {
+    // Note: This would typically create a stock movement record
+    // For now, we'll just update the local state as a placeholder
+    // In a real implementation, this would call a stock movement API
     setProducts((prev) =>
       prev.map((product) =>
         product.id === id
@@ -119,12 +168,18 @@ export const useProducts = () => {
     )
   }
 
+  const refreshProducts = useCallback(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
   return {
     products,
     loading,
+    error,
     createProduct,
     updateProduct,
     deleteProduct,
     adjustStock,
+    refreshProducts,
   }
 }

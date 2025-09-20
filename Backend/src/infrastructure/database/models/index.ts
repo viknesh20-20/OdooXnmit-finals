@@ -3,7 +3,10 @@ import { initUserModel, UserModel } from './UserModel';
 import { initProductModel, ProductModel } from './ProductModel';
 import { initManufacturingOrderModel, ManufacturingOrderModel } from './ManufacturingOrderModel';
 import { initRefreshTokenModel, RefreshTokenModel } from './RefreshTokenModel';
-import { initBOMModel, BOMModel, initBOMComponentModel, BOMComponentModel } from './BOMModel';
+import { initBOMModel, BOMModel, initBOMComponentModel, BOMComponentModel, initBOMOperationModel, BOMOperationModel } from './BOMModel';
+import { initWorkCenterModel, WorkCenterModel } from './WorkCenterModel';
+import { initWorkOrderModel, WorkOrderModel } from './WorkOrderModel';
+import { initStockMovementModel, StockMovementModel } from './StockMovementModel';
 
 // Additional supporting models
 export interface RoleAttributes {
@@ -144,6 +147,10 @@ export interface DatabaseModels {
   RefreshTokenModel: typeof RefreshTokenModel;
   BOMModel: typeof BOMModel;
   BOMComponentModel: typeof BOMComponentModel;
+  BOMOperationModel: typeof BOMOperationModel;
+  WorkCenterModel: typeof WorkCenterModel;
+  WorkOrderModel: typeof WorkOrderModel;
+  StockMovementModel: typeof StockMovementModel;
   RoleModel: any;
   UnitOfMeasureModel: any;
   ProductCategoryModel: any;
@@ -157,6 +164,10 @@ export const initializeModels = (sequelize: Sequelize): DatabaseModels => {
   const refreshTokenModel = initRefreshTokenModel(sequelize);
   const bomModel = initBOMModel(sequelize);
   const bomComponentModel = initBOMComponentModel(sequelize);
+  const bomOperationModel = initBOMOperationModel(sequelize);
+  const workCenterModel = initWorkCenterModel(sequelize);
+  const workOrderModel = initWorkOrderModel(sequelize);
+  const stockMovementModel = initStockMovementModel(sequelize);
 
   // Initialize supporting models
   const supportingModels = initSupportingModels(sequelize);
@@ -168,6 +179,10 @@ export const initializeModels = (sequelize: Sequelize): DatabaseModels => {
     RefreshTokenModel: refreshTokenModel,
     BOMModel: bomModel,
     BOMComponentModel: bomComponentModel,
+    BOMOperationModel: bomOperationModel,
+    WorkCenterModel: workCenterModel,
+    WorkOrderModel: workOrderModel,
+    StockMovementModel: stockMovementModel,
     ...supportingModels,
   };
 
@@ -213,4 +228,8 @@ export {
   RefreshTokenModel,
   BOMModel,
   BOMComponentModel,
+  BOMOperationModel,
+  WorkCenterModel,
+  WorkOrderModel,
+  StockMovementModel,
 };

@@ -49,9 +49,9 @@ export class DIContainer {
     container.bind<DatabaseConfig>('DatabaseConfig').toConstantValue({
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
-      database: process.env.DB_NAME || 'manufacturing_erp',
-      username: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'password',
+      database: process.env.DB_NAME || 'ERPDB',
+      username: process.env.DB_USER || 'pearl',
+      password: process.env.DB_PASSWORD || '1968',
       dialect: 'postgres',
       logging: process.env.NODE_ENV !== 'production',
       pool: {

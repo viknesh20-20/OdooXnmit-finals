@@ -10,7 +10,7 @@ if (!process.env.DB_NAME) {
   process.env.DB_NAME = 'ERPDB';
 }
 if (!process.env.DB_PASSWORD || process.env.DB_PASSWORD === 'password') {
-  process.env.DB_PASSWORD = 'Thalha*7258';
+  process.env.DB_PASSWORD = '1968';
 }
 
 // Validate required environment variables

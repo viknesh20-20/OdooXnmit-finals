@@ -5,43 +5,98 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { ProductionChart } from "../components/reports/ProductionChart"
 import { UtilizationChart } from "../components/reports/UtilizationChart"
+import { ErrorState, LoadingState, EmptyState } from "../components/ui/error-state"
+import { ErrorBoundary } from "../components/ui/error-boundary"
 import { useReports } from "../hooks/useReports"
-import { FileText, Table } from "lucide-react"
+import { FileText, Table, RefreshCw, BarChart3 } from "lucide-react"
 
 export const Reports: React.FC = () => {
-  const { reportData, loading, exportReport } = useReports()
+  const { reportData, loading, error, exportReport, refreshReports } = useReports()
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-white">Loading reports...</div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Manufacturing Reports</h1>
+          <div className="flex gap-2">
+            <Button disabled variant="outline">
+              <FileText className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
+            <Button disabled variant="outline">
+              <Table className="w-4 h-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
+        </div>
+        <LoadingState message="Loading report data..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Manufacturing Reports</h1>
+          <Button onClick={refreshReports} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+        <ErrorState
+          error={error}
+          onRetry={refreshReports}
+          title="Failed to load reports"
+          description="Unable to fetch report data. Please check your connection and try again."
+        />
       </div>
     )
   }
 
   if (!reportData) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-white">No report data available</div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Manufacturing Reports</h1>
+          <Button onClick={refreshReports} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+        <EmptyState
+          title="No report data available"
+          description="There's no data to display at the moment. Try refreshing or check back later."
+          icon={<BarChart3 className="h-12 w-12" />}
+          action={{
+            label: "Refresh Data",
+            onClick: refreshReports
+          }}
+        />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white">Manufacturing Reports</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => exportReport("pdf")} className="bg-red-600 hover:bg-red-700">
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
-          </Button>
-          <Button onClick={() => exportReport("excel")} className="bg-green-600 hover:bg-green-700">
-            <Table className="w-4 h-4 mr-2" />
-            Export Excel
-          </Button>
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Manufacturing Reports</h1>
+          <div className="flex gap-2">
+            <Button onClick={refreshReports} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={() => exportReport("pdf")} className="bg-red-600 hover:bg-red-700">
+              <FileText className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
+            <Button onClick={() => exportReport("excel")} className="bg-green-600 hover:bg-green-700">
+              <Table className="w-4 h-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -134,5 +189,6 @@ export const Reports: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundary>
   )
 }

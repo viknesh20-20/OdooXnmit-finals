@@ -79,10 +79,11 @@ export class ManufacturingOrderModel extends Model<ManufacturingOrderAttributes,
       as: 'workOrders',
     });
 
-    ManufacturingOrderModel.hasMany(models.MaterialReservationModel, {
-      foreignKey: 'manufacturing_order_id',
-      as: 'materialReservations',
-    });
+    // Note: MaterialReservationModel will be added later
+    // ManufacturingOrderModel.hasMany(models.MaterialReservationModel, {
+    //   foreignKey: 'manufacturing_order_id',
+    //   as: 'materialReservations',
+    // });
   }
 }
 

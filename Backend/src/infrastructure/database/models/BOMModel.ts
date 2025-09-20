@@ -341,3 +341,231 @@ export const initBOMComponentModel = (sequelize: Sequelize): typeof BOMComponent
 
   return BOMComponentModel;
 };
+
+// BOM Operation Model
+export interface BOMOperationAttributes {
+  id: string;
+  bom_id: string;
+  operation: string;
+  operation_type?: string;
+  work_center_id?: string;
+  duration: number;
+  setup_time: number;
+  teardown_time: number;
+  cost_per_hour: number;
+  total_cost: number;
+  sequence: number;
+  description?: string;
+  instructions?: string;
+  quality_requirements: Record<string, unknown>[];
+  tools_required: string[];
+  skills_required: string[];
+  metadata: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface BOMOperationCreationAttributes extends Omit<BOMOperationAttributes, 'id' | 'created_at' | 'updated_at'> {
+  id?: string;
+}
+
+export class BOMOperationModel extends Model<BOMOperationAttributes, BOMOperationCreationAttributes> implements BOMOperationAttributes {
+  public id!: string;
+  public bom_id!: string;
+  public operation!: string;
+  public operation_type?: string;
+  public work_center_id?: string;
+  public duration!: number;
+  public setup_time!: number;
+  public teardown_time!: number;
+  public cost_per_hour!: number;
+  public total_cost!: number;
+  public sequence!: number;
+  public description?: string;
+  public instructions?: string;
+  public quality_requirements!: Record<string, unknown>[];
+  public tools_required!: string[];
+  public skills_required!: string[];
+  public metadata!: Record<string, unknown>;
+  public created_at!: Date;
+  public updated_at!: Date;
+
+  // Associations
+  public bom?: any;
+  public workCenter?: any;
+
+  public static associate(models: any): void {
+    BOMOperationModel.belongsTo(models.BOMModel, {
+      foreignKey: 'bom_id',
+      as: 'bom',
+    });
+
+    BOMOperationModel.belongsTo(models.WorkCenterModel, {
+      foreignKey: 'work_center_id',
+      as: 'workCenter',
+    });
+  }
+}
+
+export const initBOMOperationModel = (sequelize: Sequelize): typeof BOMOperationModel => {
+  BOMOperationModel.init(
+    {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
+      bom_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'boms',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
+      operation: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        validate: {
+          len: [1, 255],
+        },
+      },
+      operation_type: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        validate: {
+          len: [1, 100],
+        },
+      },
+      work_center_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+          model: 'work_centers',
+          key: 'id',
+        },
+      },
+      duration: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+          min: 1,
+        },
+      },
+      setup_time: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+          min: 0,
+        },
+      },
+      teardown_time: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+          min: 0,
+        },
+      },
+      cost_per_hour: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.00,
+        validate: {
+          min: 0,
+        },
+      },
+      total_cost: {
+        type: DataTypes.DECIMAL(15, 4),
+        allowNull: false,
+        defaultValue: 0.00,
+        validate: {
+          min: 0,
+        },
+      },
+      sequence: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+          min: 1,
+        },
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      instructions: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      quality_requirements: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: [],
+      },
+      tools_required: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: false,
+        defaultValue: [],
+      },
+      skills_required: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: false,
+        defaultValue: [],
+      },
+      metadata: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {},
+      },
+      created_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updated_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+    },
+    {
+      sequelize,
+      modelName: 'BOMOperation',
+      tableName: 'bom_operations',
+      timestamps: true,
+      underscored: true,
+      indexes: [
+        {
+          fields: ['bom_id'],
+        },
+        {
+          fields: ['work_center_id'],
+        },
+        {
+          fields: ['sequence'],
+        },
+        {
+          fields: ['operation'],
+        },
+        {
+          fields: ['operation_type'],
+        },
+        {
+          fields: ['created_at'],
+        },
+        {
+          unique: true,
+          fields: ['bom_id', 'sequence'],
+        },
+        {
+          fields: ['work_center_id', 'operation'],
+        },
+      ],
+    }
+  );
+
+  return BOMOperationModel;
+};

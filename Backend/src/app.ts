@@ -12,6 +12,13 @@ import { ILogger } from '@application/interfaces/IPasswordService';
 import { AuthController } from '@presentation/controllers/AuthController';
 import { AuthMiddleware } from '@presentation/middleware/AuthMiddleware';
 import { loginValidation } from '@presentation/controllers/AuthController';
+import productRoutes from '@presentation/routes/ProductRoutes';
+import workCenterRoutes from '@presentation/routes/WorkCenterRoutes';
+import workOrderRoutes from '@presentation/routes/WorkOrderRoutes';
+import manufacturingOrderRoutes from '@presentation/routes/ManufacturingOrderRoutes';
+import bomRoutes from '@presentation/routes/BOMRoutes';
+import stockMovementRoutes from '@presentation/routes/StockMovementRoutes';
+import reportsRoutes from '@presentation/routes/ReportsRoutes';
 
 export class App {
   private app: Application;
@@ -128,16 +135,14 @@ export class App {
 
     apiV1.use('/auth', authRouter);
 
-    // Protected routes example
-    const protectedRouter = express.Router();
-    protectedRouter.use(authMiddleware.authenticate);
-    
-    // Manufacturing routes would go here
-    // protectedRouter.use('/manufacturing-orders', manufacturingOrderRoutes);
-    // protectedRouter.use('/products', productRoutes);
-    // protectedRouter.use('/boms', bomRoutes);
-
-    apiV1.use('/protected', protectedRouter);
+    // Manufacturing routes (protected)
+    apiV1.use('/products', productRoutes);
+    apiV1.use('/work-centers', workCenterRoutes);
+    apiV1.use('/work-orders', workOrderRoutes);
+    apiV1.use('/manufacturing-orders', manufacturingOrderRoutes);
+    apiV1.use('/boms', bomRoutes);
+    apiV1.use('/stock-movements', stockMovementRoutes);
+    apiV1.use('/reports', reportsRoutes);
 
     // 404 handler for API routes
     this.app.use('/api', (_req: Request, res: Response) => {

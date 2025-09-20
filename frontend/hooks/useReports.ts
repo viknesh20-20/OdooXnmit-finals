@@ -1,6 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { workCenterService } from "@/lib/services/workCenterService"
+import { productService } from "@/lib/services/productService"
+import { ApiError } from "@/lib/api"
 
 interface ReportData {
   productionSummary: {
@@ -27,58 +30,102 @@ interface ReportData {
   }
 }
 
-const mockReportData: ReportData = {
-  productionSummary: {
-    completionRate: 87,
-    avgCycleTime: 3.2,
-  },
-  qualityMetrics: {
-    firstPassYield: 94,
-    defectRate: 2.1,
-  },
-  workCenterUtilization: [
-    { workCenter: "Assembly Line A", utilization: 85 },
-    { workCenter: "Paint Booth 1", utilization: 72 },
-    { workCenter: "CNC Machine 1", utilization: 0 },
-    { workCenter: "Assembly Line B", utilization: 65 },
-    { workCenter: "Quality Control", utilization: 90 },
-  ],
-  inventoryReport: {
-    totalProducts: 6,
-    lowStockItems: 2,
-    totalValue: 12450,
-    categoryBreakdown: [
-      { category: "Raw Materials", count: 4, value: 8200 },
-      { category: "Finished Goods", count: 2, value: 4250 },
-    ],
-  },
-}
-
 export const useReports = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchReports = async () => {
+  // Fetch report data from various APIs
+  const fetchReports = useCallback(async () => {
+    try {
       setLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setReportData(mockReportData)
+      setError(null)
+
+      // Fetch data from multiple sources in parallel
+      const [workCentersResponse, productsResponse] = await Promise.all([
+        workCenterService.getWorkCenters(),
+        productService.getProducts({ status: 'active' })
+      ])
+
+      // Process work center utilization data
+      const workCenterUtilization = workCentersResponse.workCenters.map(wc => ({
+        workCenter: wc.name,
+        utilization: wc.utilization
+      }))
+
+      // Process inventory data
+      const products = productsResponse.products
+      const totalProducts = products.length
+      const lowStockItems = products.filter(p => p.minStockLevel < 50).length // Placeholder logic
+      const totalValue = products.reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0) // Placeholder calculation
+
+      // Category breakdown (simplified)
+      const categoryBreakdown = [
+        {
+          category: "Raw Materials",
+          count: products.filter(p => p.type === 'raw_material').length,
+          value: products.filter(p => p.type === 'raw_material').reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0)
+        },
+        {
+          category: "Finished Goods",
+          count: products.filter(p => p.type === 'finished_good').length,
+          value: products.filter(p => p.type === 'finished_good').reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0)
+        },
+        {
+          category: "Components",
+          count: products.filter(p => p.type === 'work_in_progress').length,
+          value: products.filter(p => p.type === 'work_in_progress').reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0)
+        }
+      ]
+
+      // Mock data for production and quality metrics (would come from other APIs)
+      const reportData: ReportData = {
+        productionSummary: {
+          completionRate: 87, // Would come from manufacturing orders API
+          avgCycleTime: 3.2,  // Would come from work orders API
+        },
+        qualityMetrics: {
+          firstPassYield: 94, // Would come from quality checks API
+          defectRate: 2.1,    // Would come from quality checks API
+        },
+        workCenterUtilization,
+        inventoryReport: {
+          totalProducts,
+          lowStockItems,
+          totalValue: Math.round(totalValue),
+          categoryBreakdown: categoryBreakdown.filter(cat => cat.count > 0)
+        }
+      }
+
+      setReportData(reportData)
+    } catch (err) {
+      const errorMessage = err instanceof ApiError ? err.message : 'Failed to fetch report data'
+      setError(errorMessage)
+      console.error('Error fetching report data:', err)
+    } finally {
       setLoading(false)
     }
-
-    fetchReports()
   }, [])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
 
   const exportReport = async (format: "pdf" | "excel") => {
     // Simulate export functionality
     console.log(`Exporting report as ${format}`)
-    // In a real app, this would trigger a download
+    // In a real app, this would trigger a download or call an export API
   }
+
+  const refreshReports = useCallback(() => {
+    fetchReports()
+  }, [fetchReports])
 
   return {
     reportData,
     loading,
+    error,
     exportReport,
+    refreshReports,
   }
 }

@@ -73,9 +73,9 @@ export class ProductModel extends Model<ProductAttributes, ProductCreationAttrib
       as: 'bomComponents',
     });
 
-    ProductModel.hasMany(models.StockLedgerModel, {
+    ProductModel.hasMany(models.StockMovementModel, {
       foreignKey: 'product_id',
-      as: 'stockLedgerEntries',
+      as: 'stockMovements',
     });
 
     ProductModel.hasMany(models.BOMModel, {

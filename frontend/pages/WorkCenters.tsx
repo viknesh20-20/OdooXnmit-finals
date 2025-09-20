@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { WorkCenterCard } from "@/components/work-centers/WorkCenterCard"
 import { CreateWorkCenterModal } from "@/components/work-centers/CreateWorkCenterModal"
-import { Plus, Search, Filter, Loader2, Building2, Activity, DollarSign, TrendingUp } from "lucide-react"
+import { Plus, Search, Filter, Building2, Activity, DollarSign, TrendingUp, RefreshCw } from "lucide-react"
+import { ErrorState, LoadingState } from "@/components/ui/error-state"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import type { WorkCenter } from "@/types"
 
 export const WorkCenters: React.FC = () => {
-  const { workCenters, loading, createWorkCenter, updateWorkCenter } = useWorkCenters()
+  const { workCenters, loading, error, createWorkCenter, updateWorkCenter, refreshWorkCenters } = useWorkCenters()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<WorkCenter["status"] | "all">("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -64,13 +66,57 @@ export const WorkCenters: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Work Centers</h1>
+            <p className="text-muted-foreground">
+              Manage machines, capacity, and monitor utilization across your facility
+            </p>
+          </div>
+          <Button disabled>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Work Center
+          </Button>
+        </div>
+        <LoadingState message="Loading work centers..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Work Centers</h1>
+            <p className="text-muted-foreground">
+              Manage machines, capacity, and monitor utilization across your facility
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={refreshWorkCenters} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Work Center
+            </Button>
+          </div>
+        </div>
+        <ErrorState
+          error={error}
+          onRetry={refreshWorkCenters}
+          title="Failed to load work centers"
+          description="Unable to fetch work center data. Please check your connection and try again."
+        />
       </div>
     )
   }
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -80,10 +126,16 @@ export const WorkCenters: React.FC = () => {
             Manage machines, capacity, and monitor utilization across your facility
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Work Center
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={refreshWorkCenters} variant="outline" size="sm">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Work Center
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -197,5 +249,6 @@ export const WorkCenters: React.FC = () => {
         editingWorkCenter={editingWorkCenter}
       />
     </div>
+    </ErrorBoundary>
   )
 }

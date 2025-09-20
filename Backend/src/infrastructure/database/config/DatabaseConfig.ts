@@ -3,6 +3,7 @@ import { injectable, inject } from 'inversify';
 
 import { DatabaseConfig } from '@/types/common';
 import { ILogger } from '@application/interfaces/IPasswordService';
+import { initializeModels } from '@infrastructure/database/models';
 
 @injectable()
 export class DatabaseConnection {
@@ -70,6 +71,10 @@ export class DatabaseConnection {
         port: this.config.port,
         database: this.config.database,
       });
+
+      // Initialize all models
+      initializeModels(this.sequelize);
+      this.logger.info('Database models initialized successfully');
     } catch (error) {
       this.logger.error('Unable to connect to database', error as Error, {
         host: this.config.host,

@@ -1,9 +1,50 @@
 import { Request, Response, NextFunction } from 'express';
 import { inject, injectable } from 'inversify';
+import jwt from 'jsonwebtoken';
 
 import { IJWTService } from '@application/interfaces/IPasswordService';
 import { ILogger } from '@application/interfaces/IPasswordService';
 import { AuthenticatedRequest } from '@presentation/controllers/AuthController';
+
+// Simple authentication middleware for testing
+export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'MISSING_TOKEN',
+        message: 'Authorization token is required',
+      },
+    });
+    return;
+  }
+
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  try {
+    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    const payload = jwt.verify(token, secret) as any;
+
+    (req as any).user = {
+      userId: payload.userId,
+      username: payload.username,
+      email: payload.email,
+      roleId: payload.roleId || undefined,
+    };
+
+    next();
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'INVALID_TOKEN',
+        message: 'Invalid or expired token',
+      },
+    });
+  }
+};
 
 @injectable()
 export class AuthMiddleware {
