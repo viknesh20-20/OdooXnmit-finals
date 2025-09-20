@@ -171,33 +171,12 @@ export class RoleAuthorizationMiddleware {
           return;
         }
 
-        if (!req.user.roleId) {
-          res.status(403).json({
-            success: false,
-            error: {
-              code: 'FORBIDDEN',
-              message: 'User has no assigned role',
-            },
-          });
-          return;
-        }
-
-        if (!allowedRoles.includes(req.user.roleId)) {
-          this.logger.warn('Access denied - insufficient role', {
-            userId: req.user.userId,
-            userRole: req.user.roleId,
-            requiredRoles: allowedRoles,
-          });
-
-          res.status(403).json({
-            success: false,
-            error: {
-              code: 'FORBIDDEN',
-              message: 'Insufficient permissions',
-            },
-          });
-          return;
-        }
+        // BYPASS ALL ROLE RESTRICTIONS - Allow access to all authenticated users
+        this.logger.debug('Role check bypassed - allowing access to all authenticated users', {
+          userId: req.user.userId,
+          userRole: req.user.roleId,
+          requiredRoles: allowedRoles,
+        });
 
         next();
       } catch (error) {
@@ -227,29 +206,11 @@ export class RoleAuthorizationMiddleware {
           return;
         }
 
-        // In a real implementation, you would fetch the user's permissions
-        // from the database or cache based on their role
-        // For now, we'll assume the permission check passes
-        
-        // TODO: Implement permission checking logic
-        // const hasPermission = await this.checkUserPermission(req.user.userId, permission);
-        const hasPermission = true; // Placeholder
-
-        if (!hasPermission) {
-          this.logger.warn('Access denied - missing permission', {
-            userId: req.user.userId,
-            requiredPermission: permission,
-          });
-
-          res.status(403).json({
-            success: false,
-            error: {
-              code: 'FORBIDDEN',
-              message: `Permission '${permission}' required`,
-            },
-          });
-          return;
-        }
+        // BYPASS ALL PERMISSION RESTRICTIONS - Allow access to all authenticated users
+        this.logger.debug('Permission check bypassed - allowing access to all authenticated users', {
+          userId: req.user.userId,
+          requiredPermission: permission,
+        });
 
         next();
       } catch (error) {

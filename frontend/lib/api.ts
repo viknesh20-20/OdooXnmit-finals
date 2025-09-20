@@ -92,6 +92,7 @@ class ApiClient {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
       timeout: REQUEST_TIMEOUT,
+      withCredentials: true, // Include cookies in all requests
       headers: {
         'Content-Type': 'application/json',
       },
@@ -140,17 +141,13 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
-            const refreshToken = TokenManager.getRefreshToken();
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
-
-            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-              refreshToken,
+            // Refresh token is handled via httpOnly cookie, so we don't need to send it
+            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+              withCredentials: true, // Include cookies in the request
             });
 
-            const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-            TokenManager.setTokens(accessToken, newRefreshToken);
+            const { accessToken } = response.data.data;
+            TokenManager.setAccessToken(accessToken);
 
             // Process failed queue
             this.failedQueue.forEach(({ resolve }) => {

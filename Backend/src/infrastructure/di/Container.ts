@@ -20,17 +20,22 @@ import { ManufacturingOrderRepository } from '@infrastructure/database/repositor
 import { ProductRepository } from '@infrastructure/database/repositories/ProductRepository';
 import { BOMRepository } from '@infrastructure/database/repositories/BOMRepository';
 import { RefreshTokenRepository } from '@infrastructure/database/repositories/RefreshTokenRepository';
+// TODO: Add these when repository implementations are ready
+// import { WorkCenterRepository } from '@infrastructure/database/repositories/WorkCenterRepository';
+// import { WorkOrderRepository } from '@infrastructure/database/repositories/WorkOrderRepository';
+// import { StockMovementRepository } from '@infrastructure/database/repositories/StockMovementRepository';
 import { PasswordService } from '@infrastructure/security/PasswordService';
 import { JWTService } from '@infrastructure/security/JWTService';
 import { WinstonLogger, PerformanceLogger } from '@infrastructure/logging/WinstonLogger';
 
 // Presentation
 import { AuthController } from '@presentation/controllers/AuthController';
+import { DashboardController } from '@presentation/controllers/DashboardController';
 import { AuthMiddleware, RoleAuthorizationMiddleware, RateLimitMiddleware } from '@presentation/middleware/AuthMiddleware';
 
 // Interfaces
 import { IPasswordService, IJWTService, ILogger, ITransactionManager } from '@application/interfaces/IPasswordService';
-import { IUserRepository, IManufacturingOrderRepository, IProductRepository, IBOMRepository, IRefreshTokenRepository } from '@domain/repositories/IUserRepository';
+import { IUserRepository, IManufacturingOrderRepository, IProductRepository, IBOMRepository, IRefreshTokenRepository, IWorkCenterRepository, IWorkOrderRepository, IStockMovementRepository } from '@domain/repositories/IUserRepository';
 import { IEventPublisher } from '@application/interfaces/IEventPublisher';
 
 // Configuration
@@ -113,6 +118,10 @@ export class DIContainer {
     container.bind<IProductRepository>('IProductRepository').to(ProductRepository).inSingletonScope();
     container.bind<IBOMRepository>('IBOMRepository').to(BOMRepository).inSingletonScope();
     container.bind<IRefreshTokenRepository>('IRefreshTokenRepository').to(RefreshTokenRepository).inSingletonScope();
+    // TODO: Add proper repository implementations
+    // container.bind<IWorkCenterRepository>('IWorkCenterRepository').to(WorkCenterRepository).inSingletonScope();
+    // container.bind<IWorkOrderRepository>('IWorkOrderRepository').to(WorkOrderRepository).inSingletonScope();
+    // container.bind<IStockMovementRepository>('IStockMovementRepository').to(StockMovementRepository).inSingletonScope();
 
     // Domain Services
     container.bind<ManufacturingOrderDomainService>('ManufacturingOrderDomainService').to(ManufacturingOrderDomainService).inSingletonScope();
@@ -133,6 +142,7 @@ export class DIContainer {
 
     // Presentation - Controllers
     container.bind<AuthController>('AuthController').to(AuthController).inSingletonScope();
+    container.bind<DashboardController>('DashboardController').to(DashboardController).inSingletonScope();
 
     // Presentation - Middleware
     container.bind<AuthMiddleware>('AuthMiddleware').to(AuthMiddleware).inSingletonScope();

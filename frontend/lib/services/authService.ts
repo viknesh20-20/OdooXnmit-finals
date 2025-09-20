@@ -118,12 +118,12 @@ class AuthService {
   }
 
   /**
-   * Refresh access token
+   * Refresh access token (refresh token is handled via httpOnly cookie)
    */
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
     const response: ApiResponse<RefreshTokenResponse> = await apiClient.post(
       `${this.basePath}/refresh`,
-      { refreshToken }
+      {} // No body needed, refresh token is in httpOnly cookie
     );
     return response.data!;
   }
@@ -132,10 +132,21 @@ class AuthService {
    * Validate current token
    */
   async validateToken(): Promise<{ valid: boolean; user?: AuthUser }> {
-    const response: ApiResponse<{ valid: boolean; user?: AuthUser }> = await apiClient.get(
-      `${this.basePath}/validate`
-    );
-    return response.data!;
+    try {
+      const response: ApiResponse<{ user: AuthUser }> = await apiClient.get(
+        `${this.basePath}/validate`
+      );
+      // Backend returns { success: true, data: { user: ... } }
+      // Transform to expected format
+      return {
+        valid: true,
+        user: response.data?.user
+      };
+    } catch (error) {
+      return {
+        valid: false
+      };
+    }
   }
 
   /**
@@ -155,6 +166,14 @@ class AuthService {
     const response: ApiResponse<{ message: string }> = await apiClient.post(
       `${this.basePath}/logout-all`
     );
+    return response.data!;
+  }
+
+  /**
+   * Get dashboard data
+   */
+  async getDashboardData(): Promise<any> {
+    const response: ApiResponse<any> = await apiClient.get('/dashboard');
     return response.data!;
   }
 

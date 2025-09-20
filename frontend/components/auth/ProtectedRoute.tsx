@@ -29,46 +29,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Check role requirements
-  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-destructive mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">
-            You don't have permission to access this page.
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Required role: {requiredRole}, Your role: {user.role}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Check permission requirements (if implemented)
-  if (requiredPermissions.length > 0) {
-    const userPermissions = user.permissions || []
-    const hasRequiredPermissions = requiredPermissions.every(permission =>
-      userPermissions.includes(permission) || user.role === 'admin'
-    )
-
-    if (!hasRequiredPermissions) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-destructive mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">
-              You don't have the required permissions to access this page.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Required permissions: {requiredPermissions.join(', ')}
-            </p>
-          </div>
-        </div>
-      )
-    }
-  }
+  // BYPASS ALL ROLE AND PERMISSION RESTRICTIONS - Allow access to all authenticated users
+  console.log('Role and permission checks bypassed - allowing access to all authenticated users', {
+    userId: user.id,
+    userRole: user.role,
+    requiredRole,
+    requiredPermissions
+  })
 
   return <>{children}</>
 }

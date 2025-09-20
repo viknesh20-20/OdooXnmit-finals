@@ -19,6 +19,7 @@ import manufacturingOrderRoutes from '@presentation/routes/ManufacturingOrderRou
 import bomRoutes from '@presentation/routes/BOMRoutes';
 import stockMovementRoutes from '@presentation/routes/StockMovementRoutes';
 import reportsRoutes from '@presentation/routes/ReportsRoutes';
+import dashboardRoutes from '@presentation/routes/DashboardRoutes';
 
 export class App {
   private app: Application;
@@ -144,6 +145,9 @@ export class App {
     authRouter.post('/logout-all', authMiddleware.authenticate, authController.logoutAll.bind(authController));
 
     apiV1.use('/auth', authRouter);
+
+    // Dashboard route (protected)
+    apiV1.use('/dashboard', dashboardRoutes);
 
     // Manufacturing routes (protected)
     apiV1.use('/products', productRoutes);

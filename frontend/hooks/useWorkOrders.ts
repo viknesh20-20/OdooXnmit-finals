@@ -2,142 +2,119 @@
 
 import { useState, useEffect } from "react"
 import type { WorkOrder } from "@/types"
+import { apiClient } from "@/lib/api"
 
-// Mock data for work orders
-const mockWorkOrders: WorkOrder[] = [
-  {
-    id: "WO-001",
-    manufacturingOrderId: "MO-001",
-    operation: "Assembly",
-    workCenter: "Assembly Line A",
-    duration: 60,
-    status: "in-progress",
-    assignee: "John Smith",
-    startTime: "2024-01-15T09:00:00Z",
-    comments: "Started assembly process, all materials available",
-  },
-  {
-    id: "WO-002",
-    manufacturingOrderId: "MO-001",
-    operation: "Painting",
-    workCenter: "Paint Booth 1",
-    duration: 30,
-    status: "pending",
-    assignee: "Sarah Johnson",
-  },
-  {
-    id: "WO-003",
-    manufacturingOrderId: "MO-001",
-    operation: "Packaging",
-    workCenter: "Packaging Line",
-    duration: 20,
-    status: "pending",
-    assignee: "Mike Wilson",
-  },
-  {
-    id: "WO-004",
-    manufacturingOrderId: "MO-002",
-    operation: "Cutting",
-    workCenter: "CNC Machine 1",
-    duration: 45,
-    status: "completed",
-    assignee: "Lisa Brown",
-    startTime: "2024-01-14T08:00:00Z",
-    endTime: "2024-01-14T08:45:00Z",
-    comments: "Cutting completed successfully, no issues",
-  },
-  {
-    id: "WO-005",
-    manufacturingOrderId: "MO-002",
-    operation: "Assembly",
-    workCenter: "Assembly Line B",
-    duration: 90,
-    status: "paused",
-    assignee: "David Lee",
-    startTime: "2024-01-15T10:30:00Z",
-    comments: "Paused due to material shortage, waiting for delivery",
-  },
-]
+// Use real API data instead of mock data
 
 export const useWorkOrders = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchWorkOrders = async () => {
+  const fetchWorkOrders = async () => {
+    try {
       setLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setWorkOrders(mockWorkOrders)
+      setError(null)
+      const response = await apiClient.get('/work-orders')
+      setWorkOrders(response.data?.data || [])
+    } catch (err) {
+      console.error('Failed to fetch work orders:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch work orders')
+      setWorkOrders([])
+    } finally {
       setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchWorkOrders()
   }, [])
 
   const startWorkOrder = async (id: string) => {
-    setWorkOrders((prev) =>
-      prev.map((wo) =>
-        wo.id === id
-          ? {
-              ...wo,
-              status: "in-progress",
-              startTime: new Date().toISOString(),
-            }
-          : wo,
-      ),
-    )
+    try {
+      const response = await apiClient.patch(`/work-orders/${id}/start`)
+      const updatedWorkOrder = response.data?.data
+      if (updatedWorkOrder) {
+        setWorkOrders((prev) =>
+          prev.map((wo) => (wo.id === id ? updatedWorkOrder : wo))
+        )
+      }
+    } catch (err) {
+      console.error('Failed to start work order:', err)
+      throw err
+    }
   }
 
   const pauseWorkOrder = async (id: string, comments?: string) => {
-    setWorkOrders((prev) =>
-      prev.map((wo) =>
-        wo.id === id
-          ? {
-              ...wo,
-              status: "paused",
-              comments: comments || wo.comments,
-            }
-          : wo,
-      ),
-    )
+    try {
+      const response = await apiClient.patch(`/work-orders/${id}/pause`, { comments })
+      const updatedWorkOrder = response.data?.data
+      if (updatedWorkOrder) {
+        setWorkOrders((prev) =>
+          prev.map((wo) => (wo.id === id ? updatedWorkOrder : wo))
+        )
+      }
+    } catch (err) {
+      console.error('Failed to pause work order:', err)
+      throw err
+    }
   }
 
   const completeWorkOrder = async (id: string, comments?: string) => {
-    setWorkOrders((prev) =>
-      prev.map((wo) =>
-        wo.id === id
-          ? {
-              ...wo,
-              status: "completed",
-              endTime: new Date().toISOString(),
-              comments: comments || wo.comments,
-            }
-          : wo,
-      ),
-    )
+    try {
+      const response = await apiClient.patch(`/work-orders/${id}/complete`, { comments })
+      const updatedWorkOrder = response.data?.data
+      if (updatedWorkOrder) {
+        setWorkOrders((prev) =>
+          prev.map((wo) => (wo.id === id ? updatedWorkOrder : wo))
+        )
+      }
+    } catch (err) {
+      console.error('Failed to complete work order:', err)
+      throw err
+    }
   }
 
   const updateWorkOrder = async (id: string, updates: Partial<WorkOrder>) => {
-    setWorkOrders((prev) => prev.map((wo) => (wo.id === id ? { ...wo, ...updates } : wo)))
+    try {
+      const response = await apiClient.put(`/work-orders/${id}`, updates)
+      const updatedWorkOrder = response.data?.data
+      if (updatedWorkOrder) {
+        setWorkOrders((prev) => prev.map((wo) => (wo.id === id ? updatedWorkOrder : wo)))
+      }
+    } catch (err) {
+      console.error('Failed to update work order:', err)
+      throw err
+    }
   }
 
   const createWorkOrder = async (workOrderData: Omit<WorkOrder, "id">) => {
-    const newWorkOrder: WorkOrder = {
-      ...workOrderData,
-      id: `WO-${String(workOrders.length + 1).padStart(3, "0")}`,
+    try {
+      const response = await apiClient.post('/work-orders', workOrderData)
+      const newWorkOrder = response.data?.data
+      if (newWorkOrder) {
+        setWorkOrders((prev) => [...prev, newWorkOrder])
+      }
+      return newWorkOrder
+    } catch (err) {
+      console.error('Failed to create work order:', err)
+      throw err
     }
-    setWorkOrders((prev) => [...prev, newWorkOrder])
-    return newWorkOrder
+  }
+
+  const refetch = () => {
+    fetchWorkOrders()
   }
 
   return {
     workOrders,
     loading,
+    error,
     startWorkOrder,
     pauseWorkOrder,
     completeWorkOrder,
     updateWorkOrder,
     createWorkOrder,
+    refetch,
   }
 }

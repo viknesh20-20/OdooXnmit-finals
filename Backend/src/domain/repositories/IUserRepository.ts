@@ -108,6 +108,13 @@ export interface IStockLedgerRepository {
   ): Promise<PaginatedResult<import('@domain/entities/StockLedger').StockLedger>>;
 }
 
+export interface IStockMovementRepository {
+  findRecent(options?: { limit?: number; warehouseId?: UUID }): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
+  findByProductId(productId: UUID, warehouseId?: UUID): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
+  findByReference(referenceId: UUID, referenceType?: string): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
+  findByDateRange(startDate: Date, endDate: Date, warehouseId?: UUID): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
+}
+
 export interface IMaterialReservationRepository extends Repository<import('@domain/entities/MaterialReservation').MaterialReservation> {
   findByManufacturingOrderId(moId: UUID): Promise<import('@domain/entities/MaterialReservation').MaterialReservation[]>;
   findByProductId(productId: UUID): Promise<import('@domain/entities/MaterialReservation').MaterialReservation[]>;

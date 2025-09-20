@@ -16,40 +16,12 @@ export const Dashboard: React.FC = () => {
     <DashboardLayout>
       <Routes>
         <Route path="/" element={<DashboardOverview />} />
-        <Route
-          path="/manufacturing-orders"
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <ManufacturingOrders />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/manufacturing-orders" element={<ManufacturingOrders />} />
         <Route path="/work-orders" element={<WorkOrders />} />
-        <Route
-          path="/work-centers"
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <WorkCenters />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/work-centers" element={<WorkCenters />} />
         <Route path="/stock-ledger" element={<StockLedger />} />
-        <Route
-          path="/bom"
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <BillOfMaterials />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <AdminRoute>
-              <Reports />
-            </AdminRoute>
-          }
-        />
+        <Route path="/bom" element={<BillOfMaterials />} />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/profile" element={<Profile />} />
       </Routes>
     </DashboardLayout>

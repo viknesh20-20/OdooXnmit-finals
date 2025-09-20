@@ -120,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           password: password
         })
 
-        // Store tokens and user data
+        // Store access token and user data (refresh token is handled via httpOnly cookie)
         localStorage.setItem('auth_token', loginResponse.accessToken)
         localStorage.setItem('auth_user', JSON.stringify(loginResponse.user))
 
@@ -190,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // For now, we'll let the backend assign a default role
         })
 
-        // Store tokens and user data
+        // Store access token and user data (refresh token is handled via httpOnly cookie)
         localStorage.setItem('auth_token', registerResponse.accessToken)
         localStorage.setItem('auth_user', JSON.stringify(registerResponse.user))
 
@@ -240,17 +240,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshToken = async (): Promise<string> => {
     try {
-      const storedRefreshToken = localStorage.getItem('refresh_token')
+      // Refresh token is handled via httpOnly cookie, so we don't need to pass it
+      const refreshResponse = await authService.refreshToken('')
 
-      if (!storedRefreshToken) {
-        throw new Error('No refresh token available')
-      }
-
-      const refreshResponse = await authService.refreshToken(storedRefreshToken)
-
-      // Update stored tokens
+      // Update stored access token
       localStorage.setItem('auth_token', refreshResponse.accessToken)
-      localStorage.setItem('refresh_token', refreshResponse.refreshToken)
 
       setToken(refreshResponse.accessToken)
       return refreshResponse.accessToken
