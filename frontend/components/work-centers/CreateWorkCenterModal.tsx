@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { X, Loader2 } from "lucide-react"
 import type { WorkCenter } from "@/types"
+import { generateReference } from "@/lib/idGenerator"
 
 interface CreateWorkCenterModalProps {
   isOpen: boolean
@@ -38,6 +39,7 @@ export const CreateWorkCenterModal: React.FC<CreateWorkCenterModalProps> = ({
     try {
       await onSubmit({
         name: formData.name,
+        code: generateReference('workcenter'),
         description: formData.description,
         costPerHour: Number.parseFloat(formData.costPerHour),
         capacity: Number.parseInt(formData.capacity),

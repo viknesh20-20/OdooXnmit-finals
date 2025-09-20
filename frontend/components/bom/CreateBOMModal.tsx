@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { X, Loader2, Plus, Trash2 } from "lucide-react"
 import type { BOM, BOMComponent, BOMOperation } from "@/types"
+import { generateReference, generateId } from "@/lib/idGenerator"
 
 interface CreateBOMModalProps {
   isOpen: boolean
@@ -39,13 +40,14 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
     try {
       const bomData: Omit<BOM, "id"> = {
         ...formData,
-        components: components.map((comp, index) => ({
+        reference: generateReference('bom'),
+        components: components.map((comp) => ({
           ...comp,
-          id: `BC-${index + 1}`,
+          id: generateId(),
         })),
-        operations: operations.map((op, index) => ({
+        operations: operations.map((op) => ({
           ...op,
-          id: `BO-${index + 1}`,
+          id: generateId(),
         })),
       }
 

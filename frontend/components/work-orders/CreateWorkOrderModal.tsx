@@ -5,8 +5,13 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { X, Loader2 } from "lucide-react"
-import type { WorkOrder } from "@/types"
+import type { WorkOrder, User } from "@/types"
+import { generateReference } from "@/lib/idGenerator"
+import { useManufacturingOrders } from "@/hooks/useManufacturingOrders"
+import { useWorkCenters } from "@/hooks/useWorkCenters"
 
 interface CreateWorkOrderModalProps {
   isOpen: boolean
@@ -15,6 +20,9 @@ interface CreateWorkOrderModalProps {
 }
 
 export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const { orders } = useManufacturingOrders()
+  const { workCenters } = useWorkCenters()
+  
   const [formData, setFormData] = useState({
     manufacturingOrderId: "",
     operation: "",
@@ -25,12 +33,39 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
   })
   const [loading, setLoading] = useState(false)
 
+  // Mock users data - in real app this would come from a users API
+  const mockUsers: User[] = [
+    {
+      id: "1", email: "john.doe@manufacturing.com", name: "John Doe", firstName: "John", lastName: "Doe",
+      role: "manager", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "2", email: "jane.smith@manufacturing.com", name: "Jane Smith", firstName: "Jane", lastName: "Smith",
+      role: "operator", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "3", email: "mike.wilson@manufacturing.com", name: "Mike Wilson", firstName: "Mike", lastName: "Wilson",
+      role: "manager", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    },
+  ]
+
+  const operationTypes = [
+    { value: "assembly", label: "Assembly" },
+    { value: "cutting", label: "Cutting" },
+    { value: "painting", label: "Painting" },
+    { value: "welding", label: "Welding" },
+    { value: "machining", label: "Machining" },
+    { value: "packaging", label: "Packaging" },
+    { value: "quality-check", label: "Quality Check" },
+  ]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
       await onSubmit({
+        reference: generateReference('workorder'),
         manufacturingOrderId: formData.manufacturingOrderId,
         operation: formData.operation,
         workCenter: formData.workCenter,
@@ -80,45 +115,60 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="manufacturingOrderId" className="text-sm font-medium">
-                Manufacturing Order ID
-              </label>
-              <Input
-                id="manufacturingOrderId"
-                name="manufacturingOrderId"
+              <Label htmlFor="manufacturingOrderId">Manufacturing Order</Label>
+              <Select
                 value={formData.manufacturingOrderId}
-                onChange={handleChange}
-                placeholder="MO-001"
-                required
-              />
+                onValueChange={(value) => setFormData(prev => ({ ...prev, manufacturingOrderId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select manufacturing order" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orders.map((order) => (
+                    <SelectItem key={order.id} value={order.id}>
+                      {order.reference} - {order.productName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="operation" className="text-sm font-medium">
-                Operation
-              </label>
-              <Input
-                id="operation"
-                name="operation"
+              <Label htmlFor="operation">Operation Type</Label>
+              <Select
                 value={formData.operation}
-                onChange={handleChange}
-                placeholder="Assembly, Painting, Cutting..."
-                required
-              />
+                onValueChange={(value) => setFormData(prev => ({ ...prev, operation: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select operation type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {operationTypes.map((operation) => (
+                    <SelectItem key={operation.value} value={operation.value}>
+                      {operation.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="workCenter" className="text-sm font-medium">
-                Work Center
-              </label>
-              <Input
-                id="workCenter"
-                name="workCenter"
+              <Label htmlFor="workCenter">Work Center</Label>
+              <Select
                 value={formData.workCenter}
-                onChange={handleChange}
-                placeholder="Assembly Line A, Paint Booth 1..."
-                required
-              />
+                onValueChange={(value) => setFormData(prev => ({ ...prev, workCenter: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select work center" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workCenters.map((center) => (
+                    <SelectItem key={center.id} value={center.id}>
+                      {center.name} - {center.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -138,39 +188,42 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="assignee" className="text-sm font-medium">
-                Assignee
-              </label>
-              <Input
-                id="assignee"
-                name="assignee"
+              <Label htmlFor="assignee">Assignee</Label>
+              <Select
                 value={formData.assignee}
-                onChange={handleChange}
-                placeholder="John Smith"
-                required
-              />
+                onValueChange={(value) => setFormData(prev => ({ ...prev, assignee: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.name}>
+                      {user.name} - {user.role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="status" className="text-sm font-medium">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
+              <Label htmlFor="status">Status</Label>
+              <Select
                 value={formData.status}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                required
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as WorkOrder["status"] }))}
               >
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="paused">Paused</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2 pt-4">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>            <div className="flex gap-2 pt-4">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
                 Cancel
               </Button>

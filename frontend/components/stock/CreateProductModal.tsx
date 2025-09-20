@@ -5,8 +5,12 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { X, Loader2 } from "lucide-react"
 import type { Product } from "@/types"
+import { generateReference } from "@/lib/idGenerator"
 
 interface CreateProductModalProps {
   isOpen: boolean
@@ -33,6 +37,26 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   })
   const [loading, setLoading] = useState(false)
 
+  const unitOptions = [
+    { value: "pieces", label: "Pieces (pcs)" },
+    { value: "kg", label: "Kilograms (kg)" },
+    { value: "g", label: "Grams (g)" },
+    { value: "m", label: "Meters (m)" },
+    { value: "cm", label: "Centimeters (cm)" },
+    { value: "L", label: "Liters (L)" },
+    { value: "ml", label: "Milliliters (ml)" },
+    { value: "hours", label: "Hours" },
+    { value: "sets", label: "Sets" },
+  ]
+
+  const categoryOptions = [
+    { value: "raw-material", label: "Raw Material" },
+    { value: "finished-good", label: "Finished Good" },
+    { value: "component", label: "Component" },
+    { value: "consumable", label: "Consumable" },
+    { value: "service", label: "Service" },
+  ]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -40,6 +64,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     try {
       await onSubmit({
         name: formData.name,
+        code: generateReference('product'),
         description: formData.description,
         unit: formData.unit,
         currentStock: Number.parseInt(formData.currentStock),
@@ -108,51 +133,53 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">
-                Description
-              </label>
-              <textarea
+              <Label htmlFor="description">Product Description</Label>
+              <Textarea
                 id="description"
-                name="description"
                 value={formData.description}
-                onChange={handleChange}
-                placeholder="Oak wooden legs for tables and chairs"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                required
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detailed description of the product..."
+                rows={3}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="unit" className="text-sm font-medium">
-                  Unit
-                </label>
-                <Input
-                  id="unit"
-                  name="unit"
+                <Label htmlFor="unit">Unit of Measure</Label>
+                <Select
                   value={formData.unit}
-                  onChange={handleChange}
-                  placeholder="pieces, kg, liters"
-                  required
-                />
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unitOptions.map((unit) => (
+                      <SelectItem key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="category" className="text-sm font-medium">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  name="category"
+                <Label htmlFor="category">Product Category</Label>
+                <Select
                   value={formData.category}
-                  onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  required
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as Product["category"] }))}
                 >
-                  <option value="raw-material">Raw Material</option>
-                  <option value="finished-good">Finished Good</option>
-                  <option value="component">Component</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

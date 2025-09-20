@@ -15,6 +15,7 @@ import { useBOMs } from "@/hooks/useBOMs"
 import { useWorkCenters } from "@/hooks/useWorkCenters"
 import { Plus } from "lucide-react"
 import { PRIORITY_LEVELS } from "@/types"
+import { generateReference } from "@/lib/idGenerator"
 
 interface CreateOrderModalProps {
   onOrderCreated: (order: ManufacturingOrder) => void
@@ -104,7 +105,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
       const selectedWorkCenter = workCenters.find(wc => wc.id === formData.workCenterId)
 
       const newOrder: Omit<ManufacturingOrder, 'id' | 'createdAt' | 'updatedAt'> = {
-        reference: `MO-${Date.now()}`,
+        reference: generateReference('manufacturing'),
         productId: formData.productId,
         productName: selectedProduct?.name || "",
         quantity: formData.quantity,

@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   BarChart3,
+  PieChart,
 } from "lucide-react"
 
 interface DashboardLayoutProps {
@@ -28,6 +29,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const [profileOpen, setProfileOpen] = useState(false)
 
   const menuItems = [
+    { icon: PieChart, label: "Dashboard", path: "/dashboard/" },
     { icon: ClipboardList, label: "Manufacturing Orders", path: "/dashboard/manufacturing-orders" },
     { icon: Wrench, label: "Work Orders", path: "/dashboard/work-orders" },
     { icon: Building2, label: "Work Centers", path: "/dashboard/work-centers" },

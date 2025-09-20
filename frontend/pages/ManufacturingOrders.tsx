@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { OrderStatusBadge } from "@/components/manufacturing/OrderStatusBadge"
 import { CreateOrderModal } from "@/components/manufacturing/CreateOrderModal"
+import { ManufacturingOrderDetail } from "@/components/manufacturing/ManufacturingOrderDetail"
+import { EditOrderModal } from "@/components/manufacturing/EditOrderModal"
 import { Search, Filter, Calendar, User, Package, Loader2 } from "lucide-react"
 import type { ManufacturingOrder } from "@/types"
 import { format } from "date-fns"
@@ -16,6 +18,10 @@ export const ManufacturingOrders: React.FC = () => {
   const { orders, loading } = useManufacturingOrders()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<ManufacturingOrder["status"] | "all">("all")
+  const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [editingOrder, setEditingOrder] = useState<ManufacturingOrder | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   // Filter orders based on search and status
   const filteredOrders = orders.filter((order) => {
@@ -38,6 +44,31 @@ export const ManufacturingOrders: React.FC = () => {
       const today = new Date()
       return o.status !== "completed" && dueDate < today
     }).length,
+  }
+
+  const handleViewDetails = (order: ManufacturingOrder) => {
+    setSelectedOrder(order)
+    setIsDetailOpen(true)
+  }
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false)
+    setSelectedOrder(null)
+  }
+
+  const handleEdit = (order: ManufacturingOrder) => {
+    setEditingOrder(order)
+    setIsEditOpen(true)
+  }
+
+  const handleCloseEdit = () => {
+    setIsEditOpen(false)
+    setEditingOrder(null)
+  }
+
+  const handleOrderUpdated = (updatedOrder: ManufacturingOrder) => {
+    // Handle the updated order (could refresh data, show notification, etc.)
+    console.log("Order updated:", updatedOrder)
   }
 
   if (loading) {
@@ -197,10 +228,10 @@ export const ManufacturingOrders: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(order)}>
                       View Details
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(order)}>
                       Edit
                     </Button>
                   </div>
@@ -211,7 +242,21 @@ export const ManufacturingOrders: React.FC = () => {
         )}
       </div>
 
+      {/* Detail Modal */}
+      <ManufacturingOrderDetail
+        order={selectedOrder}
+        isOpen={isDetailOpen}
+        onClose={handleCloseDetail}
+        onEdit={handleEdit}
+      />
 
+      {/* Edit Modal */}
+      <EditOrderModal
+        order={editingOrder}
+        isOpen={isEditOpen}
+        onClose={handleCloseEdit}
+        onOrderUpdated={handleOrderUpdated}
+      />
     </div>
   )
 }
