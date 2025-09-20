@@ -1,212 +1,319 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import type { ManufacturingOrder, BOM, User, CreateManufacturingOrderForm } from "@/types"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, Loader2 } from "lucide-react"
-import type { ManufacturingOrder } from "@/types"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useManufacturingOrders } from "@/hooks/useManufacturingOrders"
+import { useProducts } from "@/hooks/useProducts"
+import { useBOMs } from "@/hooks/useBOMs"
+import { useWorkCenters } from "@/hooks/useWorkCenters"
+import { Plus } from "lucide-react"
+import { PRIORITY_LEVELS } from "@/types"
 
 interface CreateOrderModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSubmit: (orderData: Omit<ManufacturingOrder, "id" | "createdAt" | "updatedAt" | "workOrders">) => Promise<ManufacturingOrder>
+  onOrderCreated: (order: ManufacturingOrder) => void
 }
 
-export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    productName: "",
-    quantity: "",
-    startDate: "",
+// Mock users data - in real app this would come from a users API
+const mockUsers: User[] = [
+  {
+    id: "1",
+    email: "john.doe@manufacturing.com",
+    name: "John Doe",
+    firstName: "John",
+    lastName: "Doe",
+    role: "manager",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    email: "jane.smith@manufacturing.com",
+    name: "Jane Smith",
+    firstName: "Jane",
+    lastName: "Smith",
+    role: "operator",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    email: "mike.wilson@manufacturing.com",
+    name: "Mike Wilson",
+    firstName: "Mike",
+    lastName: "Wilson",
+    role: "manager",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+]
+
+export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreated }) => {
+  const { createOrder } = useManufacturingOrders()
+  const { products } = useProducts()
+  const { boms } = useBOMs()
+  const { workCenters } = useWorkCenters()
+  
+  const [open, setOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState<CreateManufacturingOrderForm>({
+    productId: "",
+    quantity: 1,
+    priority: "medium",
     dueDate: "",
-    assignee: "",
+    assigneeId: "",
     bomId: "",
-    status: "planned" as ManufacturingOrder["status"],
+    workCenterId: "",
+    notes: "",
   })
-  const [loading, setLoading] = useState(false)
+
+  const [filteredBOMs, setFilteredBOMs] = useState<BOM[]>([])
+
+  // Filter BOMs based on selected product
+  useEffect(() => {
+    if (formData.productId) {
+      const productBOMs = boms.filter(bom => bom.productId === formData.productId && bom.isActive)
+      setFilteredBOMs(productBOMs)
+      // Auto-select default BOM if available
+      const defaultBOM = productBOMs.find(bom => bom.isDefault)
+      if (defaultBOM && !formData.bomId) {
+        setFormData(prev => ({ ...prev, bomId: defaultBOM.id }))
+      }
+    } else {
+      setFilteredBOMs([])
+    }
+  }, [formData.productId, boms])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setIsSubmitting(true)
 
     try {
-      await onSubmit({
-        productName: formData.productName,
-        quantity: Number.parseInt(formData.quantity),
-        startDate: formData.startDate,
-        dueDate: formData.dueDate,
-        assignee: formData.assignee,
-        bomId: formData.bomId,
-        status: formData.status,
-      })
+      const selectedProduct = products.find(p => p.id === formData.productId)
+      const selectedBOM = boms.find(b => b.id === formData.bomId)
+      const selectedAssignee = mockUsers.find(u => u.id === formData.assigneeId)
+      const selectedWorkCenter = workCenters.find(wc => wc.id === formData.workCenterId)
 
+      const newOrder: Omit<ManufacturingOrder, 'id' | 'createdAt' | 'updatedAt'> = {
+        reference: `MO-${Date.now()}`,
+        productId: formData.productId,
+        productName: selectedProduct?.name || "",
+        quantity: formData.quantity,
+        status: "planned",
+        priority: formData.priority,
+        startDate: new Date().toISOString(),
+        dueDate: formData.dueDate,
+        assigneeId: formData.assigneeId,
+        assigneeName: selectedAssignee?.name || "",
+        assignee: selectedAssignee?.name || "", // Backward compatibility
+        bomId: formData.bomId,
+        bomName: selectedBOM?.reference || selectedBOM?.productName || "",
+        workCenterId: formData.workCenterId,
+        workCenterName: selectedWorkCenter?.name || "",
+        workOrders: [],
+        totalDuration: selectedBOM?.estimatedTime || 0,
+        completedQuantity: 0,
+        scrapQuantity: 0,
+        progress: 0,
+        notes: formData.notes,
+        createdBy: "current-user", // In real app, get from auth context
+      }
+
+      const createdOrder = await createOrder(newOrder)
+      onOrderCreated(createdOrder)
+      
       // Reset form
       setFormData({
-        productName: "",
-        quantity: "",
-        startDate: "",
+        productId: "",
+        quantity: 1,
+        priority: "medium",
         dueDate: "",
-        assignee: "",
+        assigneeId: "",
         bomId: "",
-        status: "planned",
+        workCenterId: "",
+        notes: "",
       })
-      onClose()
+      setOpen(false)
+    } catch (error) {
+      console.error("Error creating manufacturing order:", error)
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
-  }
-
-  if (!isOpen) return null
+  const finishedGoods = products.filter(p => p.category === "finished-good")
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Create Manufacturing Order</CardTitle>
-              <CardDescription>Add a new production order to the system</CardDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Order
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Manufacturing Order</DialogTitle>
+          <DialogDescription>Create a new manufacturing order to start production planning.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="productName" className="text-sm font-medium">
-                Product Name
-              </label>
-              <Input
-                id="productName"
-                name="productName"
-                value={formData.productName}
-                onChange={handleChange}
-                placeholder="Wooden Table"
-                required
-              />
+              <Label htmlFor="productId">Product *</Label>
+              <Select 
+                value={formData.productId} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, productId: value, bomId: "" }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select product to manufacture" />
+                </SelectTrigger>
+                <SelectContent>
+                  {finishedGoods.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name} - {product.code || product.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
+            
             <div className="space-y-2">
-              <label htmlFor="quantity" className="text-sm font-medium">
-                Quantity
-              </label>
+              <Label htmlFor="quantity">Quantity *</Label>
               <Input
                 id="quantity"
-                name="quantity"
                 type="number"
-                value={formData.quantity}
-                onChange={handleChange}
-                placeholder="10"
                 min="1"
+                value={formData.quantity}
+                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                placeholder="Enter quantity"
                 required
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="startDate" className="text-sm font-medium">
-                  Start Date
-                </label>
-                <Input
-                  id="startDate"
-                  name="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="dueDate" className="text-sm font-medium">
-                  Due Date
-                </label>
-                <Input
-                  id="dueDate"
-                  name="dueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="assignee" className="text-sm font-medium">
-                Assignee
-              </label>
-              <Input
-                id="assignee"
-                name="assignee"
-                value={formData.assignee}
-                onChange={handleChange}
-                placeholder="John Smith"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="bomId" className="text-sm font-medium">
-                BOM ID
-              </label>
-              <Input
-                id="bomId"
-                name="bomId"
-                value={formData.bomId}
-                onChange={handleChange}
-                placeholder="BOM-001"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="status" className="text-sm font-medium">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                required
+              <Label htmlFor="bomId">Bill of Materials *</Label>
+              <Select 
+                value={formData.bomId} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, bomId: value }))}
+                disabled={!formData.productId}
               >
-                <option value="planned">Planned</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={!formData.productId ? "Select product first" : "Select BOM"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredBOMs.map((bom) => (
+                    <SelectItem key={bom.id} value={bom.id}>
+                      {bom.reference || bom.version} {bom.isDefault && "(Default)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Order"
-                )}
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="assigneeId">Assignee *</Label>
+              <Select 
+                value={formData.assigneeId} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockUsers.filter(user => user.isActive).map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} - {user.role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select 
+                value={formData.priority} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as any }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_LEVELS.map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date *</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="workCenterId">Preferred Work Center</Label>
+            <Select 
+              value={formData.workCenterId || ""} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, workCenterId: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select work center (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {workCenters.filter(wc => wc.status === "active").map((workCenter) => (
+                  <SelectItem key={workCenter.id} value={workCenter.id}>
+                    {workCenter.name} - ${workCenter.costPerHour}/hr
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Enter any additional notes or instructions..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !formData.productId || !formData.bomId || !formData.assigneeId}>
+              {isSubmitting ? "Creating..." : "Create Order"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

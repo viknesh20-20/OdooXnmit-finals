@@ -22,8 +22,8 @@ export const WorkOrders: React.FC = () => {
     const matchesSearch =
       workOrder.operation.toLowerCase().includes(searchTerm.toLowerCase()) ||
       workOrder.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      workOrder.assignee.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      workOrder.workCenter.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (workOrder.assignee || workOrder.assigneeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (workOrder.workCenter || workOrder.workCenterName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       workOrder.manufacturingOrderId.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || workOrder.status === statusFilter
     return matchesSearch && matchesStatus

@@ -8,22 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { OrderStatusBadge } from "@/components/manufacturing/OrderStatusBadge"
 import { CreateOrderModal } from "@/components/manufacturing/CreateOrderModal"
-import { Plus, Search, Filter, Calendar, User, Package, Loader2 } from "lucide-react"
+import { Search, Filter, Calendar, User, Package, Loader2 } from "lucide-react"
 import type { ManufacturingOrder } from "@/types"
 import { format } from "date-fns"
 
 export const ManufacturingOrders: React.FC = () => {
-  const { orders, loading, createOrder } = useManufacturingOrders()
+  const { orders, loading } = useManufacturingOrders()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<ManufacturingOrder["status"] | "all">("all")
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   // Filter orders based on search and status
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.assignee.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.assignee || order.assigneeName || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -57,10 +56,7 @@ export const ManufacturingOrders: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Manufacturing Orders</h1>
           <p className="text-muted-foreground">Manage and track your production orders from planning to completion</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Order
-        </Button>
+        <CreateOrderModal onOrderCreated={() => {}} />
       </div>
 
       {/* KPI Cards */}
@@ -215,8 +211,7 @@ export const ManufacturingOrders: React.FC = () => {
         )}
       </div>
 
-      {/* Create Order Modal */}
-      <CreateOrderModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onSubmit={createOrder} />
+
     </div>
   )
 }

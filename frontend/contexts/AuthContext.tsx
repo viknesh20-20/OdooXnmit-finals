@@ -47,7 +47,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: "1",
           email,
           name: "Manufacturing Admin",
+          firstName: "Manufacturing",
+          lastName: "Admin",
           role: "admin",
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
         setUser(mockUser)
         localStorage.setItem("manufacturing_user", JSON.stringify(mockUser))
@@ -69,7 +74,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: Date.now().toString(),
         email,
         name,
+        firstName: name.split(' ')[0] || name,
+        lastName: name.split(' ')[1] || '',
         role,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
       setUser(mockUser)
       localStorage.setItem("manufacturing_user", JSON.stringify(mockUser))
