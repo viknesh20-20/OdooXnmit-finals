@@ -68,8 +68,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
     try {
       const success = await login(formData.email, formData.password)
       if (!success) {
-        setErrors({ general: "Invalid email or password" })
+        setErrors({ general: "Invalid email or password. Please check your credentials and try again." })
       }
+    } catch (error) {
+      console.error('Login error:', error)
+      setErrors({ general: "An error occurred during login. Please try again." })
     } finally {
       setLoading(false)
     }

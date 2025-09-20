@@ -69,6 +69,11 @@ export interface IJWTService {
    * Get refresh token expiration time in seconds
    */
   getRefreshTokenExpirationTime(): number;
+
+  /**
+   * Get token expiration time from a token
+   */
+  getTokenExpirationTime(token: string): number | null;
 }
 
 export interface IEmailService {

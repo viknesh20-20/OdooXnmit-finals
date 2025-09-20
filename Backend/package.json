@@ -14,7 +14,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only --files src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only --files src/dev-server.ts",
     "start:simple": "node src/simple-server.js",
     "dev:simple": "ts-node-dev --respawn --transpile-only src/simple-server.ts",
     "test": "jest",

@@ -15,7 +15,8 @@ interface SignupFormProps {
 
 export const SignupForm: React.FC<SignupFormProps> = ({ onToggleMode }) => {
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     role: "operator" as User["role"],
@@ -27,9 +28,33 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onToggleMode }) => {
     e.preventDefault()
     setError("")
 
-    const success = await signup(formData.email, formData.password, formData.name, formData.role)
-    if (!success) {
-      setError("Failed to create account")
+    // Basic validation
+    if (!formData.firstName.trim()) {
+      setError("First name is required")
+      return
+    }
+    if (!formData.lastName.trim()) {
+      setError("Last name is required")
+      return
+    }
+    if (!formData.email.trim()) {
+      setError("Email is required")
+      return
+    }
+    if (!formData.password) {
+      setError("Password is required")
+      return
+    }
+
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim()
+      const success = await signup(formData.email, formData.password, fullName, formData.role)
+      if (!success) {
+        setError("Failed to create account. Please check your information and try again.")
+      }
+    } catch (error) {
+      console.error('Signup error:', error)
+      setError("An error occurred during registration. Please try again.")
     }
   }
 
@@ -52,16 +77,30 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onToggleMode }) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">
-              Full Name
+            <label htmlFor="firstName" className="text-sm font-medium">
+              First Name
             </label>
             <Input
-              id="name"
-              name="name"
+              id="firstName"
+              name="firstName"
               type="text"
-              value={formData.name}
+              value={formData.firstName}
               onChange={handleChange}
-              placeholder="John Doe"
+              placeholder="John"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="lastName" className="text-sm font-medium">
+              Last Name
+            </label>
+            <Input
+              id="lastName"
+              name="lastName"
+              type="text"
+              value={formData.lastName}
+              onChange={handleChange}
+              placeholder="Doe"
               required
             />
           </div>

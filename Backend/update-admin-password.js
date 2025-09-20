@@ -4,7 +4,7 @@ const { Sequelize } = require('sequelize');
 async function updateAdminPassword() {
   try {
     // Database configuration
-    const sequelize = new Sequelize('ERPDB', 'pearl', '1968', {
+    const sequelize = new Sequelize('ERPDB', 'postgres', 'Thalha*7258', {
       host: 'localhost',
       port: 5432,
       dialect: 'postgresql',

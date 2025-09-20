@@ -81,7 +81,7 @@ export class LoginUseCase implements ILoginUseCase {
       const tokensResponse: AuthTokensResponseDTO = {
         accessToken,
         refreshToken,
-        expiresIn: this.jwtService.getTokenExpirationTime(accessToken) || 900,
+        expiresIn: this.jwtService.getAccessTokenExpirationTime(),
         tokenType: 'Bearer',
       };
 
@@ -188,7 +188,7 @@ export class RefreshTokenUseCase {
       const response: AuthTokensResponseDTO = {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
-        expiresIn: this.jwtService.getTokenExpirationTime(newAccessToken) || 900,
+        expiresIn: this.jwtService.getAccessTokenExpirationTime(),
         tokenType: 'Bearer',
       };
 

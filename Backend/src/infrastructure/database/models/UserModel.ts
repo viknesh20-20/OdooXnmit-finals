@@ -124,8 +124,15 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
         type: DataTypes.STRING(20),
         allowNull: true,
         validate: {
-          is: /^\+?[\d\s\-\(\)]+$/,
+          is: {
+            args: /^\+?[\d\s\-\(\)]+$/,
+            msg: 'Phone number must be in valid format'
+          }
         },
+        set(value: string | null) {
+          // Convert empty string to null to avoid validation on empty values
+          this.setDataValue('phone', value === '' ? null : value);
+        }
       },
       status: {
         type: DataTypes.ENUM('active', 'inactive', 'suspended'),

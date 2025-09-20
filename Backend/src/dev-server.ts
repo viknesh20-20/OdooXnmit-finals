@@ -1,9 +1,23 @@
-import 'module-alias/register';
+import 'tsconfig-paths/register';
 import dotenv from 'dotenv';
+import { DIContainer } from '@infrastructure/di/Container';
 import { createApp } from './app';
 
 // Load environment variables
 dotenv.config({ override: true });
+
+// Debug environment variables
+console.log('Environment variables loaded:');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_USERNAME:', process.env.DB_USERNAME);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***' : 'undefined');
+
+// Reset DI container to pick up new environment variables
+console.log('Resetting DI container with updated environment variables...');
+DIContainer.reset();
 
 // Ensure correct database configuration
 if (!process.env.DB_NAME) {

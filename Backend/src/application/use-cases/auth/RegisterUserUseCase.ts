@@ -96,7 +96,7 @@ export class RegisterUserUseCase implements IRegisterUserUseCase {
       const tokensResponse: AuthTokensResponseDTO = {
         accessToken,
         refreshToken,
-        expiresIn: this.jwtService.getTokenExpirationTime(accessToken) || 900,
+        expiresIn: this.jwtService.getAccessTokenExpirationTime(),
         tokenType: 'Bearer',
       };
 

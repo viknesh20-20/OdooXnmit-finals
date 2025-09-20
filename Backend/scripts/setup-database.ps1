@@ -26,8 +26,8 @@ try {
     Write-Host ""
     Write-Host "Database Configuration:" -ForegroundColor Cyan
     Write-Host "  Database: ERPDB" -ForegroundColor White
-    Write-Host "  User: pearl" -ForegroundColor White
-    Write-Host "  Password: 1968" -ForegroundColor White
+    Write-Host "  User: postgres" -ForegroundColor White
+    Write-Host "  Password: Thalha*7258" -ForegroundColor White
     Write-Host "  Host: localhost" -ForegroundColor White
     Write-Host "  Port: 5432" -ForegroundColor White
     
@@ -38,8 +38,8 @@ try {
     Write-Host "1. Open PostgreSQL command line (psql)" -ForegroundColor White
     Write-Host "2. Connect as superuser: psql -U postgres" -ForegroundColor White
     Write-Host "3. Create database: CREATE DATABASE \"ERPDB\";" -ForegroundColor White
-    Write-Host "4. Create user: CREATE USER pearl WITH PASSWORD '1968';" -ForegroundColor White
-    Write-Host "5. Grant privileges: GRANT ALL PRIVILEGES ON DATABASE \"ERPDB\" TO pearl;" -ForegroundColor White
+    Write-Host "4. Create user: CREATE USER postgres WITH PASSWORD 'Thalha*7258';" -ForegroundColor White
+    Write-Host "5. Grant privileges: GRANT ALL PRIVILEGES ON DATABASE \"ERPDB\" TO postgres;" -ForegroundColor White
     exit 1
 }
 

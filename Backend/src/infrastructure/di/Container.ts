@@ -46,6 +46,10 @@ export class DIContainer {
     return DIContainer.instance;
   }
 
+  public static reset(): void {
+    DIContainer.instance = DIContainer.createContainer();
+  }
+
   private static createContainer(): Container {
     const container = new Container();
 
@@ -54,8 +58,8 @@ export class DIContainer {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       database: process.env.DB_NAME || 'ERPDB',
-      username: process.env.DB_USER || 'pearl',
-      password: process.env.DB_PASSWORD || '1968',
+      username: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'Thalha*7258',
       dialect: 'postgres',
       logging: process.env.NODE_ENV !== 'production',
       pool: {
@@ -136,10 +140,6 @@ export class DIContainer {
     container.bind<RateLimitMiddleware>('RateLimitMiddleware').to(RateLimitMiddleware).inSingletonScope();
 
     return container;
-  }
-
-  public static reset(): void {
-    DIContainer.instance = DIContainer.createContainer();
   }
 
   public static destroy(): void {

@@ -3,6 +3,8 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import type { User } from "@/types"
+import { authService, type AuthUser } from "@/lib/services/authService"
+import { ApiError } from "@/lib/api"
 
 interface AuthContextType {
   user: User | null
@@ -17,6 +19,20 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// Helper function to map AuthUser to User
+const mapAuthUserToUser = (authUser: AuthUser): User => ({
+  id: authUser.id,
+  email: authUser.email,
+  name: `${authUser.firstName} ${authUser.lastName}`,
+  firstName: authUser.firstName,
+  lastName: authUser.lastName,
+  phone: authUser.phone,
+  role: (authUser.role?.name || 'operator') as User['role'],
+  isActive: authUser.isActive,
+  createdAt: authUser.createdAt,
+  updatedAt: authUser.updatedAt,
+})
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -63,16 +79,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const validateToken = async (token: string): Promise<void> => {
-    const apiBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
-    const response = await fetch(`${apiBaseUrl}/auth/validate`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    })
+    try {
+      // Temporarily set the token for validation
+      const originalToken = localStorage.getItem('auth_token')
+      localStorage.setItem('auth_token', token)
 
-    if (!response.ok) {
+      const result = await authService.validateToken()
+
+      // Restore original token
+      if (originalToken) {
+        localStorage.setItem('auth_token', originalToken)
+      } else {
+        localStorage.removeItem('auth_token')
+      }
+
+      if (!result.valid) {
+        throw new Error('Token validation failed')
+      }
+    } catch (error) {
       throw new Error('Token validation failed')
     }
   }
@@ -91,44 +115,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Try real API authentication first
       try {
-        const apiBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
-        const response = await fetch(`${apiBaseUrl}/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            usernameOrEmail: email,
-            password: password
-          }),
+        const loginResponse = await authService.login({
+          usernameOrEmail: email,
+          password: password
         })
 
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.data) {
-            const { accessToken, user: userData } = result.data
+        // Store tokens and user data
+        localStorage.setItem('auth_token', loginResponse.accessToken)
+        localStorage.setItem('auth_user', JSON.stringify(loginResponse.user))
 
-            // Store tokens and user data
-            localStorage.setItem('auth_token', accessToken)
-            localStorage.setItem('auth_user', JSON.stringify(userData))
-
-            setToken(accessToken)
-            setUser({
-              id: userData.id,
-              email: userData.email,
-              name: `${userData.firstName} ${userData.lastName}`,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              role: userData.role?.name || 'user',
-              isActive: userData.isActive,
-              createdAt: userData.createdAt,
-              updatedAt: userData.updatedAt,
-            })
-            return true
-          }
-        }
+        setToken(loginResponse.accessToken)
+        setUser(mapAuthUserToUser(loginResponse.user))
+        return true
       } catch (apiError) {
-        console.warn('API authentication failed, falling back to mock auth:', apiError)
+        console.warn('API authentication failed:', apiError)
+
+        // If it's a validation or authentication error, don't fall back to mock
+        if (apiError instanceof ApiError && (apiError.status === 401 || apiError.status === 400)) {
+          return false
+        }
+
+        // For other errors (network, server), fall back to mock auth
+        console.warn('Falling back to mock authentication')
       }
 
       // Fallback to mock authentication for development
@@ -163,10 +171,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const signup = async (email: string, _password: string, name: string, role: User["role"]): Promise<boolean> => {
+  const signup = async (email: string, password: string, name: string, role: User["role"]): Promise<boolean> => {
     setIsLoading(true)
     try {
-      // Simulate API call
+      // Try real API registration first
+      try {
+        const nameParts = name.split(' ')
+        const firstName = nameParts[0] || name
+        const lastName = nameParts.slice(1).join(' ') || ''
+
+        const registerResponse = await authService.register({
+          username: authService.generateUsername(email),
+          email,
+          password,
+          firstName,
+          lastName,
+          // Note: roleId would need to be mapped from role name to UUID
+          // For now, we'll let the backend assign a default role
+        })
+
+        // Store tokens and user data
+        localStorage.setItem('auth_token', registerResponse.accessToken)
+        localStorage.setItem('auth_user', JSON.stringify(registerResponse.user))
+
+        setToken(registerResponse.accessToken)
+        setUser(mapAuthUserToUser(registerResponse.user))
+        return true
+      } catch (apiError) {
+        console.warn('API registration failed:', apiError)
+
+        // If it's a validation error, don't fall back to mock
+        if (apiError instanceof ApiError && (apiError.status === 400 || apiError.status === 409)) {
+          return false
+        }
+
+        // For other errors, fall back to mock registration
+        console.warn('Falling back to mock registration')
+      }
+
+      // Fallback to mock registration for development
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       const mockUser: User = {
@@ -180,8 +223,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
+
+      // Generate mock token
+      const mockToken = `mock_token_${Date.now()}`
+
       setUser(mockUser)
+      setToken(mockToken)
       localStorage.setItem("manufacturing_user", JSON.stringify(mockUser))
+      localStorage.setItem('auth_token', mockToken)
+      localStorage.setItem('auth_user', JSON.stringify(mockUser))
       return true
     } finally {
       setIsLoading(false)
@@ -196,27 +246,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('No refresh token available')
       }
 
-      const response = await fetch('/api/v1/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken: storedRefreshToken }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Token refresh failed')
-      }
-
-      const data = await response.json()
-      const { token: newToken, refreshToken: newRefreshToken } = data
+      const refreshResponse = await authService.refreshToken(storedRefreshToken)
 
       // Update stored tokens
-      localStorage.setItem('auth_token', newToken)
-      localStorage.setItem('refresh_token', newRefreshToken)
+      localStorage.setItem('auth_token', refreshResponse.accessToken)
+      localStorage.setItem('refresh_token', refreshResponse.refreshToken)
 
-      setToken(newToken)
-      return newToken
+      setToken(refreshResponse.accessToken)
+      return refreshResponse.accessToken
     } catch (error) {
       console.error('Token refresh error:', error)
       clearAuthState()
@@ -236,13 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     // Optional: Call logout endpoint to invalidate token on server
     if (token) {
-      fetch('/api/v1/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }).catch(error => {
+      authService.logout().catch(error => {
         console.warn('Logout API call failed:', error)
       })
     }

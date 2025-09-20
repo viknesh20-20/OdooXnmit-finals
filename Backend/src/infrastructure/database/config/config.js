@@ -2,8 +2,8 @@ require('dotenv').config();
 
 module.exports = {
   development: {
-    username: process.env.DB_USERNAME || 'pearl',
-    password: process.env.DB_PASSWORD || '1968',
+    username: process.env.DB_USERNAME || 'postgres',
+    password: process.env.DB_PASSWORD || 'Thalha*7258',
     database: process.env.DB_NAME || 'ERPDB',
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
@@ -22,8 +22,8 @@ module.exports = {
     },
   },
   test: {
-    username: process.env.DB_USERNAME || 'pearl',
-    password: process.env.DB_PASSWORD || '1968',
+    username: process.env.DB_USERNAME || 'postgres',
+    password: process.env.DB_PASSWORD || 'Thalha*7258',
     database: process.env.DB_NAME_TEST || 'ERPDB',
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,

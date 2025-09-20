@@ -1,7 +1,7 @@
 version: '3.8'
 
 se    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pearl -d ERPDB"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ERPDB"]
       interval: 10s
       timeout: 5s
       retries: 5s:
@@ -12,8 +12,8 @@ se    healthcheck:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ERPDB
-      POSTGRES_USER: pearl
-      POSTGRES_PASSWORD: 1968
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Thalha*7258
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
@@ -23,7 +23,7 @@ se    healthcheck:
     networks:
       - manufacturing-erp-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pearl -d ERPDB"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ERPDB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,8 +61,8 @@ se    healthcheck:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ERPDB
-      DB_USER: pearl
-      DB_PASSWORD: 1968
+      DB_USER: postgres
+      DB_PASSWORD: Thalha*7258
       JWT_SECRET: your-super-secret-jwt-key-change-in-production-min-32-chars
       JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production-min-32-chars
       JWT_EXPIRES_IN: 15m
