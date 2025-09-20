@@ -11,7 +11,7 @@ import { DatabaseConnection } from '@infrastructure/database/config/DatabaseConf
 import { ILogger } from '@application/interfaces/IPasswordService';
 import { AuthController } from '@presentation/controllers/AuthController';
 import { AuthMiddleware } from '@presentation/middleware/AuthMiddleware';
-import { loginValidation } from '@presentation/controllers/AuthController';
+import { loginValidation, registerValidation, forgotPasswordValidation, resetPasswordValidation } from '@presentation/controllers/AuthController';
 import productRoutes from '@presentation/routes/ProductRoutes';
 import workCenterRoutes from '@presentation/routes/WorkCenterRoutes';
 import workOrderRoutes from '@presentation/routes/WorkOrderRoutes';
@@ -114,6 +114,12 @@ export class App {
       next();
     });
 
+    // Debug middleware to log all requests
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      console.log(`[DEBUG] ${req.method} ${req.url} - Headers:`, req.headers);
+      next();
+    });
+
     // Health check endpoint (before authentication)
     this.app.get('/health', this.healthCheckHandler.bind(this));
   }
@@ -129,7 +135,11 @@ export class App {
     // Auth routes
     const authRouter = express.Router();
     authRouter.post('/login', loginValidation, authController.login.bind(authController));
+    authRouter.post('/register', registerValidation, authController.register.bind(authController));
+    authRouter.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword.bind(authController));
+    authRouter.post('/reset-password', resetPasswordValidation, authController.resetPassword.bind(authController));
     authRouter.post('/refresh', authController.refreshToken.bind(authController));
+    authRouter.get('/validate', authMiddleware.authenticate, authController.validateToken.bind(authController));
     authRouter.post('/logout', authMiddleware.authenticate, authController.logout.bind(authController));
     authRouter.post('/logout-all', authMiddleware.authenticate, authController.logoutAll.bind(authController));
 

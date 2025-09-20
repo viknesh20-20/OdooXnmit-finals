@@ -43,96 +43,71 @@ export class UserMapper {
     };
   }
 
-  public toDomainEntity(dto: {
-    id: string;
-    username: string;
-    email: string;
-    passwordHash: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    status: string;
-    roleId?: string;
-    emailVerified: boolean;
-    emailVerificationToken?: string;
-    emailVerificationExpires?: Date;
-    passwordResetToken?: string;
-    passwordResetExpires?: Date;
-    lastLogin?: Date;
-    failedLoginAttempts: number;
-    lockedUntil?: Date;
-    metadata: Record<string, unknown>;
-    createdAt: Date;
-    updatedAt: Date;
-  }): User {
+  public toDomainEntity(dto: any): User {
+    // Handle both camelCase and snake_case field names from database
+    const emailVerified = dto.emailVerified ?? dto.email_verified ?? false;
+    const emailVerificationToken = dto.emailVerificationToken ?? dto.email_verification_token;
+    const emailVerificationExpires = dto.emailVerificationExpires ?? dto.email_verification_expires;
+    const passwordResetToken = dto.passwordResetToken ?? dto.password_reset_token;
+    const passwordResetExpires = dto.passwordResetExpires ?? dto.password_reset_expires;
+    const lastLogin = dto.lastLogin ?? dto.last_login;
+    const failedLoginAttempts = dto.failedLoginAttempts ?? dto.failed_login_attempts ?? 0;
+    const lockedUntil = dto.lockedUntil ?? dto.locked_until;
+    const firstName = dto.firstName ?? dto.first_name;
+    const lastName = dto.lastName ?? dto.last_name;
+    const passwordHash = dto.passwordHash ?? dto.password_hash;
+    const roleId = dto.roleId ?? dto.role_id;
+    const createdAt = dto.createdAt ?? dto.created_at;
+    const updatedAt = dto.updatedAt ?? dto.updated_at;
+
     return User.fromPersistence({
       id: dto.id,
       username: { value: dto.username } as any, // Will be properly typed in implementation
       email: { value: dto.email } as any,
-      password: { hash: dto.passwordHash } as any,
-      name: { firstName: dto.firstName, lastName: dto.lastName, fullName: `${dto.firstName} ${dto.lastName}` } as any,
+      password: { hash: passwordHash } as any,
+      name: { firstName, lastName, fullName: `${firstName} ${lastName}` } as any,
       phone: dto.phone || '',
       status: dto.status as any,
-      roleId: dto.roleId,
-      emailVerified: dto.emailVerified,
-      emailVerificationToken: dto.emailVerificationToken,
-      emailVerificationExpires: dto.emailVerificationExpires,
-      passwordResetToken: dto.passwordResetToken,
-      passwordResetExpires: dto.passwordResetExpires,
-      lastLogin: dto.lastLogin,
-      failedLoginAttempts: dto.failedLoginAttempts,
-      lockedUntil: dto.lockedUntil,
-      metadata: dto.metadata,
-      createdAt: dto.createdAt,
-      updatedAt: dto.updatedAt,
+      roleId,
+      emailVerified,
+      emailVerificationToken,
+      emailVerificationExpires,
+      passwordResetToken,
+      passwordResetExpires,
+      lastLogin,
+      failedLoginAttempts,
+      lockedUntil,
+      metadata: dto.metadata || {},
+      createdAt,
+      updatedAt,
     });
   }
 
-  public toPersistenceData(user: User): {
-    id: string;
-    username: string;
-    email: string;
-    passwordHash: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    status: string;
-    roleId?: string;
-    emailVerified: boolean;
-    emailVerificationToken?: string;
-    emailVerificationExpires?: Date;
-    passwordResetToken?: string;
-    passwordResetExpires?: Date;
-    lastLogin?: Date;
-    failedLoginAttempts: number;
-    lockedUntil?: Date;
-    metadata: Record<string, unknown>;
-    createdAt: Date;
-    updatedAt: Date;
-  } {
+  public toPersistenceData(user: User): any {
     const props = user.toPersistence();
     
+    // Return data with database field names (snake_case)
     return {
       id: props.id,
       username: props.username.value,
       email: props.email.value,
-      passwordHash: props.password.hash,
-      firstName: props.name.firstName,
-      lastName: props.name.lastName,
+      password_hash: props.password.hash,  // snake_case for database
+      first_name: props.name.firstName,    // snake_case for database
+      last_name: props.name.lastName,      // snake_case for database
       phone: props.phone,
       status: props.status,
-      roleId: props.roleId,
-      emailVerified: props.emailVerified,
-      emailVerificationToken: props.emailVerificationToken,
-      emailVerificationExpires: props.emailVerificationExpires,
-      passwordResetToken: props.passwordResetToken,
-      passwordResetExpires: props.passwordResetExpires,
-      lastLogin: props.lastLogin,
-      failedLoginAttempts: props.failedLoginAttempts,
-      lockedUntil: props.lockedUntil,
+      role_id: props.roleId,               // snake_case for database
+      email_verified: props.emailVerified, // snake_case for database
+      email_verification_token: props.emailVerificationToken,
+      email_verification_expires: props.emailVerificationExpires,
+      password_reset_token: props.passwordResetToken,
+      password_reset_expires: props.passwordResetExpires,
+      last_login: props.lastLogin,         // snake_case for database
+      failed_login_attempts: props.failedLoginAttempts, // snake_case for database
+      locked_until: props.lockedUntil,     // snake_case for database
       metadata: props.metadata,
-      createdAt: props.createdAt,
-      updatedAt: props.updatedAt,
+      created_at: props.createdAt,         // snake_case for database
+      updated_at: props.updatedAt,         // snake_case for database
     };
   }
 }

@@ -135,7 +135,8 @@ export class User {
   }
 
   private isValidPhone(phone: string): boolean {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    // Allow international phone numbers with common formatting
+    const phoneRegex = /^[\+]?[\d\s\-\(\)]{7,20}$/;
     return phoneRegex.test(phone);
   }
 
@@ -224,6 +225,14 @@ export class User {
       ...this.props,
       passwordResetToken: undefined,
       passwordResetExpires: undefined,
+      updatedAt: new Date(),
+    });
+  }
+
+  public updatePassword(hashedPassword: string): User {
+    return new User({
+      ...this.props,
+      password: Password.fromHash(hashedPassword),
       updatedAt: new Date(),
     });
   }

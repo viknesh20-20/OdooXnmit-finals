@@ -210,6 +210,23 @@ export class TokenBlacklistService {
     return this.blacklistedTokens.size;
   }
 
+  public getTokenExpirationTime(token: string): number | null {
+    try {
+      const decoded = jwt.decode(token) as JWTPayload;
+      if (!decoded || !decoded.exp) {
+        return null;
+      }
+      // Return the time until expiration in seconds
+      const currentTime = Math.floor(Date.now() / 1000);
+      const expirationTime = decoded.exp;
+      const timeUntilExpiration = expirationTime - currentTime;
+      
+      return timeUntilExpiration > 0 ? timeUntilExpiration : 0;
+    } catch (error) {
+      return null;
+    }
+  }
+
   private cleanupExpiredTokens(): void {
     const now = Date.now();
     const expiredTokens: string[] = [];

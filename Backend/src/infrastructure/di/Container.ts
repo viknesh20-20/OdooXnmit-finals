@@ -6,6 +6,10 @@ import { ManufacturingOrderDomainService } from '@domain/services/ManufacturingO
 
 // Application
 import { ILoginUseCase, LoginUseCase, RefreshTokenUseCase, LogoutUseCase } from '@application/use-cases/auth/LoginUseCase';
+import { IRegisterUserUseCase, RegisterUserUseCase } from '@application/use-cases/auth/RegisterUserUseCase';
+import { IForgotPasswordUseCase, ForgotPasswordUseCase } from '@application/use-cases/auth/ForgotPasswordUseCase';
+import { IResetPasswordUseCase, ResetPasswordUseCase } from '@application/use-cases/auth/ResetPasswordUseCase';
+import { IEmailService, EmailService } from '@infrastructure/services/EmailService';
 import { ICreateManufacturingOrderUseCase, CreateManufacturingOrderUseCase, ConfirmManufacturingOrderUseCase } from '@application/use-cases/manufacturing/CreateManufacturingOrderUseCase';
 import { UserMapper, ManufacturingOrderMapper } from '@application/mappers/UserMapper';
 
@@ -88,6 +92,9 @@ export class DIContainer {
     // Infrastructure - Security
     container.bind<IPasswordService>('IPasswordService').to(PasswordService).inSingletonScope();
     container.bind<IJWTService>('IJWTService').to(JWTService).inSingletonScope();
+    
+    // Infrastructure - Services
+    container.bind<IEmailService>('IEmailService').to(EmailService).inSingletonScope();
 
     // Infrastructure - Events
     container.bind<IEventPublisher>('IEventPublisher').toConstantValue({
@@ -112,6 +119,9 @@ export class DIContainer {
 
     // Application - Use Cases
     container.bind<ILoginUseCase>('ILoginUseCase').to(LoginUseCase).inSingletonScope();
+    container.bind<IRegisterUserUseCase>('IRegisterUserUseCase').to(RegisterUserUseCase).inSingletonScope();
+    container.bind<IForgotPasswordUseCase>('IForgotPasswordUseCase').to(ForgotPasswordUseCase).inSingletonScope();
+    container.bind<IResetPasswordUseCase>('IResetPasswordUseCase').to(ResetPasswordUseCase).inSingletonScope();
     container.bind<RefreshTokenUseCase>('RefreshTokenUseCase').to(RefreshTokenUseCase).inSingletonScope();
     container.bind<LogoutUseCase>('LogoutUseCase').to(LogoutUseCase).inSingletonScope();
     container.bind<ICreateManufacturingOrderUseCase>('ICreateManufacturingOrderUseCase').to(CreateManufacturingOrderUseCase).inSingletonScope();
