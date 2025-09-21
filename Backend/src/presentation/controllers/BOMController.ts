@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import { Op } from 'sequelize';
-import { BOMModel } from '@infrastructure/database/models/BOMModel';
+import { BOMModel, BOMComponentModel, BOMOperationModel } from '@infrastructure/database/models/BOMModel';
 import { ProductModel } from '@infrastructure/database/models/ProductModel';
 import { Logger } from '@infrastructure/logging/Logger';
 
@@ -365,6 +365,141 @@ export class BOMController {
       });
     } catch (error) {
       this.logger.error('Error approving BOM', { error: (error as Error).message, stack: (error as Error).stack });
+      next(error);
+    }
+  }
+
+  // POST /api/v1/boms/:id/duplicate
+  public async duplicateBOM(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request parameters',
+            details: errors.array(),
+          },
+        });
+        return;
+      }
+
+      const bomId = req.params.id;
+
+      // Find the original BOM with its components and operations
+      const originalBom = await BOMModel.findByPk(bomId, {
+        include: [
+          {
+            model: ProductModel,
+            as: 'product',
+          },
+          {
+            model: BOMComponentModel,
+            as: 'components',
+          },
+          {
+            model: BOMOperationModel,
+            as: 'operations',
+          },
+        ],
+      });
+
+      if (!originalBom) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'BOM_NOT_FOUND',
+            message: 'BOM not found',
+          },
+        });
+        return;
+      }
+
+      // Create the new BOM with duplicated data
+      const duplicatedBOMData = {
+        product_id: originalBom.product_id,
+        version: `${originalBom.version}-copy-${Date.now()}`, // Make version unique
+        name: `${originalBom.name} (Copy)`,
+        description: originalBom.description ? `Copy of: ${originalBom.description}` : 'Duplicated BOM',
+        is_active: false, // New BOMs should start as inactive
+        is_default: false, // Copies shouldn't be default
+        created_by: req.body.created_by || 'system', // Use provided created_by or default to system
+        approved_by: undefined,
+        approved_at: undefined,
+        metadata: originalBom.metadata,
+      };
+
+      const duplicatedBom = await BOMModel.create(duplicatedBOMData);
+
+      // Duplicate components
+      if (originalBom.components && originalBom.components.length > 0) {
+        const componentPromises = originalBom.components.map(async (component: any) => {
+          return BOMComponentModel.create({
+            bom_id: duplicatedBom.id,
+            component_id: component.component_id,
+            quantity: component.quantity,
+            unit: component.unit,
+            scrap_factor: component.scrap_factor || 0,
+            sequence_number: component.sequence_number || 0,
+            notes: component.notes,
+          });
+        });
+        await Promise.all(componentPromises);
+      }
+
+      // Duplicate operations
+      if (originalBom.operations && originalBom.operations.length > 0) {
+        const operationPromises = originalBom.operations.map(async (operation: any) => {
+          return BOMOperationModel.create({
+            bom_id: duplicatedBom.id,
+            operation: operation.operation,
+            operation_type: operation.operation_type,
+            work_center_id: operation.work_center_id,
+            duration: operation.duration || 0,
+            setup_time: operation.setup_time || 0,
+            teardown_time: operation.teardown_time || 0,
+            cost_per_hour: operation.cost_per_hour || 0,
+            total_cost: operation.total_cost || 0,
+            sequence: operation.sequence || 0,
+            description: operation.description,
+            instructions: operation.instructions,
+            quality_requirements: operation.quality_requirements || [],
+            tools_required: operation.tools_required || [],
+            skills_required: operation.skills_required || [],
+            metadata: operation.metadata || {},
+          });
+        });
+        await Promise.all(operationPromises);
+      }
+
+      // Fetch the complete duplicated BOM with its relations
+      const completeBom = await BOMModel.findByPk(duplicatedBom.id, {
+        include: [
+          {
+            model: ProductModel,
+            as: 'product',
+          },
+          {
+            model: BOMComponentModel,
+            as: 'components',
+          },
+          {
+            model: BOMOperationModel,
+            as: 'operations',
+          },
+        ],
+      });
+
+      res.status(201).json({
+        success: true,
+        data: {
+          bom: this.formatBOMResponse(completeBom!),
+        },
+        message: 'BOM duplicated successfully',
+      });
+    } catch (error) {
+      this.logger.error('Error duplicating BOM', { error: (error as Error).message, stack: (error as Error).stack });
       next(error);
     }
   }

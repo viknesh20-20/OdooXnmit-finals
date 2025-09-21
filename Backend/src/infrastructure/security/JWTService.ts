@@ -122,11 +122,23 @@ export class JWTService implements IJWTService {
   }
 
   public getAccessTokenExpirationTime(): number {
-    return this.parseExpiresIn(this.config.expiresIn) / 1000; // Return in seconds
+    return Math.floor(Date.now() / 1000) + this.parseExpiresIn(this.config.expiresIn) / 1000;
   }
 
   public getRefreshTokenExpirationTime(): number {
     return this.parseExpiresIn(this.config.refreshExpiresIn) / 1000; // Return in seconds
+  }
+
+  public getTokenExpirationTime(token: string): number | null {
+    try {
+      const decoded = jwt.decode(token) as any;
+      if (!decoded || !decoded.exp) {
+        return null;
+      }
+      return decoded.exp;
+    } catch (error) {
+      return null;
+    }
   }
 
   private validateConfig(): void {

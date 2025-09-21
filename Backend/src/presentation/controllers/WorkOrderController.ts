@@ -462,12 +462,144 @@ export class WorkOrderController {
     }
   }
 
+  // PATCH /api/v1/work-orders/:id/start
+  public async startWorkOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const workOrder = await WorkOrderModel.findByPk(id);
+
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'WORK_ORDER_NOT_FOUND',
+            message: 'Work order not found',
+          },
+        });
+        return;
+      }
+
+      const updateData = {
+        status: 'in-progress',
+        start_time: new Date(),
+        updated_at: new Date(),
+      };
+
+      await workOrder.update(updateData);
+
+      res.status(200).json({
+        success: true,
+        data: this.formatWorkOrderResponse(workOrder),
+        message: 'Work order started successfully',
+      });
+    } catch (error) {
+      this.logger.error('Error starting work order', { error: (error as Error).message, stack: (error as Error).stack });
+      next(error);
+    }
+  }
+
+  // PATCH /api/v1/work-orders/:id/pause
+  public async pauseWorkOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { comments } = req.body;
+
+      const workOrder = await WorkOrderModel.findByPk(id);
+
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'WORK_ORDER_NOT_FOUND',
+            message: 'Work order not found',
+          },
+        });
+        return;
+      }
+
+      const updateData: any = {
+        status: 'paused',
+        updated_at: new Date(),
+      };
+
+      if (comments) {
+        updateData.comments = comments;
+      }
+
+      await workOrder.update(updateData);
+
+      res.status(200).json({
+        success: true,
+        data: this.formatWorkOrderResponse(workOrder),
+        message: 'Work order paused successfully',
+      });
+    } catch (error) {
+      this.logger.error('Error pausing work order', { error: (error as Error).message, stack: (error as Error).stack });
+      next(error);
+    }
+  }
+
+  // PATCH /api/v1/work-orders/:id/complete
+  public async completeWorkOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { comments } = req.body;
+
+      const workOrder = await WorkOrderModel.findByPk(id);
+
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'WORK_ORDER_NOT_FOUND',
+            message: 'Work order not found',
+          },
+        });
+        return;
+      }
+
+      const updateData: any = {
+        status: 'completed',
+        end_time: new Date(),
+        updated_at: new Date(),
+      };
+
+      if (comments) {
+        updateData.comments = comments;
+      }
+
+      // Calculate actual duration if start_time exists
+      if (workOrder.start_time) {
+        const startTime = new Date(workOrder.start_time);
+        const endTime = new Date();
+        const durationMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        updateData.actual_duration = durationMinutes;
+      }
+
+      await workOrder.update(updateData);
+
+      res.status(200).json({
+        success: true,
+        data: this.formatWorkOrderResponse(workOrder),
+        message: 'Work order completed successfully',
+      });
+    } catch (error) {
+      this.logger.error('Error completing work order', { error: (error as Error).message, stack: (error as Error).stack });
+      next(error);
+    }
+  }
+
   private formatWorkOrderResponse(workOrder: WorkOrderModel): any {
     return {
       id: workOrder.id,
+      reference: workOrder.wo_number,
       woNumber: workOrder.wo_number,
       manufacturingOrderId: workOrder.manufacturing_order_id,
+      manufacturingOrderRef: workOrder.manufacturingOrder?.mo_number,
       workCenterId: workOrder.work_center_id,
+      workCenterName: workOrder.workCenter?.name,
+      workCenter: workOrder.workCenter?.name, // For backward compatibility
       operation: workOrder.operation,
       operationType: workOrder.operation_type,
       duration: workOrder.duration,
@@ -475,21 +607,22 @@ export class WorkOrderController {
       actualDuration: workOrder.actual_duration,
       status: workOrder.status,
       priority: workOrder.priority,
-      assignedTo: workOrder.assigned_to,
+      assigneeId: workOrder.assigned_to,
+      assignee: workOrder.assigned_to || '', // For backward compatibility
+      assigneeName: '', // TODO: Add user lookup if needed
       sequence: workOrder.sequence,
-      startTime: workOrder.start_time,
-      endTime: workOrder.end_time,
+      startTime: workOrder.start_time?.toISOString(),
+      endTime: workOrder.end_time?.toISOString(),
       pauseTime: workOrder.pause_time,
-      dependencies: workOrder.dependencies,
+      dependencies: workOrder.dependencies || [],
       instructions: workOrder.instructions,
       comments: workOrder.comments,
-      qualityChecks: workOrder.quality_checks,
-      timeEntries: workOrder.time_entries,
+      qualityChecks: workOrder.quality_checks || [],
+      timeEntries: workOrder.time_entries || [],
       metadata: workOrder.metadata,
       manufacturingOrder: workOrder.manufacturingOrder,
-      workCenter: workOrder.workCenter,
-      createdAt: workOrder.created_at,
-      updatedAt: workOrder.updated_at,
+      createdAt: workOrder.created_at?.toISOString(),
+      updatedAt: workOrder.updated_at?.toISOString(),
     };
   }
 }

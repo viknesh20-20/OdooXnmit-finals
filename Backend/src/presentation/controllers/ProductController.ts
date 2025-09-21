@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { resolve } from '@infrastructure/di/Container';
 import { ILogger } from '@application/interfaces/IPasswordService';
 import { ProductModel } from '@infrastructure/database/models/ProductModel';
+import { StockMovementModel } from '@infrastructure/database/models/StockMovementModel';
 // Note: ProductCategoryModel and UnitOfMeasureModel will be added when supporting models are implemented
 
 export class ProductController {
@@ -88,10 +89,15 @@ export class ProductController {
 
       const totalPages = Math.ceil(count / Number(limit));
 
+      // Format products with stock levels
+      const formattedProducts = await Promise.all(
+        rows.map(product => this.formatProductResponse(product))
+      );
+
       res.status(200).json({
         success: true,
         data: {
-          products: rows.map(product => this.formatProductResponse(product)),
+          products: formattedProducts,
           pagination: {
             page: Number(page),
             limit: Number(limit),
@@ -156,7 +162,7 @@ export class ProductController {
       res.status(200).json({
         success: true,
         data: {
-          product: this.formatProductResponse(product),
+          product: await this.formatProductResponse(product),
         },
       });
     } catch (error) {
@@ -222,7 +228,7 @@ export class ProductController {
       res.status(201).json({
         success: true,
         data: {
-          product: this.formatProductResponse(createdProduct!),
+          product: await this.formatProductResponse(createdProduct!),
         },
         message: 'Product created successfully',
       });
@@ -305,7 +311,7 @@ export class ProductController {
       res.status(200).json({
         success: true,
         data: {
-          product: this.formatProductResponse(updatedProduct!),
+          product: await this.formatProductResponse(updatedProduct!),
         },
         message: 'Product updated successfully',
       });
@@ -361,7 +367,16 @@ export class ProductController {
     }
   }
 
-  private formatProductResponse(product: any): any {
+  private async formatProductResponse(product: any): Promise<any> {
+    // Get current stock level from latest stock movement
+    const latestMovement = await StockMovementModel.findOne({
+      where: { product_id: product.id },
+      order: [['timestamp', 'DESC']],
+      attributes: ['running_balance'],
+    });
+
+    const currentStock = latestMovement ? parseFloat(latestMovement.running_balance.toString()) : 0;
+
     return {
       id: product.id,
       sku: product.sku,
@@ -389,6 +404,7 @@ export class ProductController {
       isActive: product.is_active,
       specifications: product.specifications,
       attachments: product.attachments,
+      currentStock: currentStock, // Add current stock level
       createdAt: product.created_at,
       updatedAt: product.updated_at,
     };

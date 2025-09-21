@@ -2,15 +2,18 @@
 
 import type React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Package, ShoppingCart, Settings } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TrendingUp, TrendingDown, Package, ShoppingCart, Settings, Edit, Trash2, MoreHorizontal } from "lucide-react"
 import type { StockMovement } from "@/types"
 import { format } from "date-fns"
 
 interface StockMovementsListProps {
   movements: StockMovement[]
+  onEdit?: (movement: StockMovement) => void
+  onDelete?: (id: string) => void
 }
 
-export const StockMovementsList: React.FC<StockMovementsListProps> = ({ movements }) => {
+export const StockMovementsList: React.FC<StockMovementsListProps> = ({ movements, onEdit, onDelete }) => {
   const getMovementIcon = (type: StockMovement["type"]) => {
     return type === "in" ? TrendingUp : TrendingDown
   }
@@ -68,6 +71,31 @@ export const StockMovementsList: React.FC<StockMovementsListProps> = ({ movement
                     </div>
                     {movement.notes && <p className="text-sm text-muted-foreground mt-1">{movement.notes}</p>}
                   </div>
+
+                  {(onEdit || onDelete) && (
+                    <div className="flex items-center gap-1">
+                      {onEdit && (
+                        <Button
+                          onClick={() => onEdit(movement)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {onDelete && (
+                        <Button
+                          onClick={() => onDelete(movement.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })

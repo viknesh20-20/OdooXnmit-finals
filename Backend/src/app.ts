@@ -17,6 +17,7 @@ import workCenterRoutes from '@presentation/routes/WorkCenterRoutes';
 import workOrderRoutes from '@presentation/routes/WorkOrderRoutes';
 import manufacturingOrderRoutes from '@presentation/routes/ManufacturingOrderRoutes';
 import bomRoutes from '@presentation/routes/BOMRoutes';
+import bomOperationRoutes from '@presentation/routes/BOMOperationRoutes';
 import stockMovementRoutes from '@presentation/routes/StockMovementRoutes';
 import reportsRoutes from '@presentation/routes/ReportsRoutes';
 import dashboardRoutes from '@presentation/routes/DashboardRoutes';
@@ -73,10 +74,10 @@ export class App {
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     }));
 
-    // Rate limiting
+    // Rate limiting - More generous limits for development
     this.app.use(rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // Limit each IP to 100 requests per windowMs
+      max: 1000, // Increased limit to 1000 requests per windowMs
       message: {
         success: false,
         error: {
@@ -86,6 +87,10 @@ export class App {
       },
       standardHeaders: true,
       legacyHeaders: false,
+      // Skip rate limiting for auth validation endpoint to prevent logout issues
+      skip: (req) => {
+        return req.path === '/api/v1/auth/validate';
+      },
     }));
 
     // Body parsing middleware
@@ -133,16 +138,33 @@ export class App {
     const apiV1 = express.Router();
     this.app.use('/api/v1', apiV1);
 
-    // Auth routes
+    // Auth routes with specific rate limiting
     const authRouter = express.Router();
-    authRouter.post('/login', loginValidation, authController.login.bind(authController));
-    authRouter.post('/register', registerValidation, authController.register.bind(authController));
-    authRouter.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword.bind(authController));
-    authRouter.post('/reset-password', resetPasswordValidation, authController.resetPassword.bind(authController));
-    authRouter.post('/refresh', authController.refreshToken.bind(authController));
+
+    // Apply more restrictive rate limiting to auth endpoints except validate
+    const authRateLimit = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 50, // 50 requests per window for auth endpoints
+      message: {
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many authentication requests, please try again later.',
+        },
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+
+    authRouter.post('/login', authRateLimit, loginValidation, authController.login.bind(authController));
+    authRouter.post('/register', authRateLimit, registerValidation, authController.register.bind(authController));
+    authRouter.post('/forgot-password', authRateLimit, forgotPasswordValidation, authController.forgotPassword.bind(authController));
+    authRouter.post('/reset-password', authRateLimit, resetPasswordValidation, authController.resetPassword.bind(authController));
+    authRouter.post('/refresh', authRateLimit, authController.refreshToken.bind(authController));
+    // No rate limiting on validate endpoint to prevent logout issues
     authRouter.get('/validate', authMiddleware.authenticate, authController.validateToken.bind(authController));
-    authRouter.post('/logout', authMiddleware.authenticate, authController.logout.bind(authController));
-    authRouter.post('/logout-all', authMiddleware.authenticate, authController.logoutAll.bind(authController));
+    authRouter.post('/logout', authRateLimit, authMiddleware.authenticate, authController.logout.bind(authController));
+    authRouter.post('/logout-all', authRateLimit, authMiddleware.authenticate, authController.logoutAll.bind(authController));
 
     apiV1.use('/auth', authRouter);
 
@@ -155,6 +177,7 @@ export class App {
     apiV1.use('/work-orders', workOrderRoutes);
     apiV1.use('/manufacturing-orders', manufacturingOrderRoutes);
     apiV1.use('/boms', bomRoutes);
+    apiV1.use('/bom-operations', bomOperationRoutes);
     apiV1.use('/stock-movements', stockMovementRoutes);
     apiV1.use('/reports', reportsRoutes);
 
@@ -322,7 +345,7 @@ export const createApp = (): App => {
 // Start the application if this file is run directly
 if (require.main === module) {
   const app = createApp();
-  const port = parseInt(process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.PORT || '3001', 10);
   
   app.start(port).catch((error) => {
     console.error('Failed to start application:', error);

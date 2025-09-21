@@ -13,6 +13,7 @@ import { useManufacturingOrders } from "@/hooks/useManufacturingOrders"
 import { useProducts } from "@/hooks/useProducts"
 import { useBOMs } from "@/hooks/useBOMs"
 import { useWorkCenters } from "@/hooks/useWorkCenters"
+import { useActiveUsers } from "@/hooks/useUsers"
 import { PRIORITY_LEVELS } from "@/types"
 
 interface EditOrderModalProps {
@@ -22,27 +23,12 @@ interface EditOrderModalProps {
   onOrderUpdated: (order: ManufacturingOrder) => void
 }
 
-// Mock users data - in real app this would come from a users API
-const mockUsers: User[] = [
-  {
-    id: "1", email: "john.doe@manufacturing.com", name: "John Doe", firstName: "John", lastName: "Doe",
-    role: "manager", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2", email: "jane.smith@manufacturing.com", name: "Jane Smith", firstName: "Jane", lastName: "Smith",
-    role: "operator", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "3", email: "mike.wilson@manufacturing.com", name: "Mike Wilson", firstName: "Mike", lastName: "Wilson",
-    role: "manager", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-]
-
 export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, onClose, onOrderUpdated }) => {
   const { updateOrder } = useManufacturingOrders()
   const { products } = useProducts()
-  const { boms } = useBOMs()
-  const { workCenters } = useWorkCenters()
+  const { boms, loading: bomsLoading, error: bomsError } = useBOMs()
+  const { workCenters, loading: workCentersLoading, error: workCentersError } = useWorkCenters()
+  const { users, loading: usersLoading, error: usersError } = useActiveUsers()
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<CreateManufacturingOrderForm>({
@@ -93,7 +79,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
     try {
       const selectedProduct = products.find(p => p.id === formData.productId)
       const selectedBOM = boms.find(b => b.id === formData.bomId)
-      const selectedAssignee = mockUsers.find(u => u.id === formData.assigneeId)
+      const selectedAssignee = users.find(u => u.id === formData.assigneeId)
       const selectedWorkCenter = workCenters.find(wc => wc.id === formData.workCenterId)
 
       const updatedOrder: ManufacturingOrder = {
@@ -104,8 +90,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
         priority: formData.priority,
         dueDate: formData.dueDate,
         assigneeId: formData.assigneeId,
-        assigneeName: selectedAssignee?.name || "",
-        assignee: selectedAssignee?.name || "", // Backward compatibility
+        assigneeName: selectedAssignee ? (selectedAssignee.fullName || `${selectedAssignee.firstName} ${selectedAssignee.lastName}`) : "",
+        assignee: selectedAssignee ? (selectedAssignee.fullName || `${selectedAssignee.firstName} ${selectedAssignee.lastName}`) : "", // Backward compatibility
         bomId: formData.bomId,
         bomName: selectedBOM?.reference || selectedBOM?.productName || "",
         workCenterId: formData.workCenterId,
@@ -126,7 +112,16 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
   }
 
   const handleInputChange = (field: keyof CreateManufacturingOrderForm, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value }
+
+      // Clear BOM selection when product changes
+      if (field === 'productId') {
+        newData.bomId = ""
+      }
+
+      return newData
+    })
   }
 
   if (!order) return null
@@ -218,11 +213,19 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name} - {user.role}
-                    </SelectItem>
-                  ))}
+                  {usersLoading ? (
+                    <SelectItem value="loading-users" disabled>Loading users...</SelectItem>
+                  ) : usersError ? (
+                    <SelectItem value="error-users" disabled>Error loading users</SelectItem>
+                  ) : users.length === 0 ? (
+                    <SelectItem value="no-users" disabled>No users available</SelectItem>
+                  ) : (
+                    users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.fullName || `${user.firstName} ${user.lastName}`} - {user.roleName || 'User'}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -237,36 +240,53 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                   <SelectValue placeholder="Select work center" />
                 </SelectTrigger>
                 <SelectContent>
-                  {workCenters.map((center) => (
-                    <SelectItem key={center.id} value={center.id}>
-                      {center.name}
-                    </SelectItem>
-                  ))}
+                  {workCentersLoading ? (
+                    <SelectItem value="loading-workcenters" disabled>Loading work centers...</SelectItem>
+                  ) : workCentersError ? (
+                    <SelectItem value="error-workcenters" disabled>Error loading work centers</SelectItem>
+                  ) : workCenters.length === 0 ? (
+                    <SelectItem value="no-workcenters" disabled>No work centers available</SelectItem>
+                  ) : (
+                    workCenters.map((center) => (
+                      <SelectItem key={center.id} value={center.id}>
+                        {center.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {filteredBOMs.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="bom">Bill of Materials</Label>
-              <Select
-                value={formData.bomId}
-                onValueChange={(value) => handleInputChange('bomId', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select BOM (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredBOMs.map((bom) => (
+          <div className="space-y-2">
+            <Label htmlFor="bom">Bill of Materials</Label>
+            <Select
+              value={formData.bomId}
+              onValueChange={(value) => handleInputChange('bomId', value)}
+              disabled={!formData.productId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={!formData.productId ? "Select product first" : "Select BOM (optional)"} />
+              </SelectTrigger>
+              <SelectContent>
+                {bomsLoading ? (
+                  <SelectItem value="loading-boms" disabled>Loading BOMs...</SelectItem>
+                ) : bomsError ? (
+                  <SelectItem value="error-boms" disabled>Error loading BOMs</SelectItem>
+                ) : !formData.productId ? (
+                  <SelectItem value="select-product-first" disabled>Select product first</SelectItem>
+                ) : filteredBOMs.length === 0 ? (
+                  <SelectItem value="no-boms" disabled>No BOMs available for this product</SelectItem>
+                ) : (
+                  filteredBOMs.map((bom) => (
                     <SelectItem key={bom.id} value={bom.id}>
                       {bom.reference || bom.productName} {bom.isDefault && "(Default)"}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

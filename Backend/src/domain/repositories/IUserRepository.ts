@@ -9,6 +9,13 @@ export interface UserFilters {
   readonly search?: string;
 }
 
+export interface Role {
+  id: UUID;
+  name: string;
+  description?: string;
+  permissions?: Record<string, unknown>;
+}
+
 export interface IUserRepository extends Repository<User> {
   findByEmail(email: Email): Promise<User | null>;
   findByUsername(username: Username): Promise<User | null>;
@@ -18,6 +25,8 @@ export interface IUserRepository extends Repository<User> {
   existsByEmail(email: Email): Promise<boolean>;
   existsByUsername(username: Username): Promise<boolean>;
   findByRoleId(roleId: UUID, pagination?: Pagination): Promise<PaginatedResult<User>>;
+  findRoleByName(name: string): Promise<Role | null>;
+  findRoleById(id: UUID): Promise<Role | null>;
 }
 
 export interface ProductFilters {
@@ -84,12 +93,28 @@ export interface IBOMRepository extends Repository<import('@domain/entities/BOM'
   findComplete(bomId: UUID): Promise<import('@domain/entities/BOM').BOM | null>;
 }
 
-export interface IWorkOrderRepository extends Repository<import('@domain/entities/WorkOrder').WorkOrder> {
-  findByWoNumber(woNumber: string): Promise<import('@domain/entities/WorkOrder').WorkOrder | null>;
-  findByManufacturingOrderId(moId: UUID): Promise<import('@domain/entities/WorkOrder').WorkOrder[]>;
-  findByStatus(status: string, pagination?: Pagination): Promise<PaginatedResult<import('@domain/entities/WorkOrder').WorkOrder>>;
-  findByWorkCenterId(workCenterId: UUID, pagination?: Pagination): Promise<PaginatedResult<import('@domain/entities/WorkOrder').WorkOrder>>;
-  findByAssignedTo(userId: UUID, pagination?: Pagination): Promise<PaginatedResult<import('@domain/entities/WorkOrder').WorkOrder>>;
+// Simple WorkOrder interface for repository return type
+export interface WorkOrder {
+  id: string;
+  woNumber?: string;
+  manufacturingOrderId?: string;
+  operation?: string;
+  workCenterName?: string;
+  status: string;
+  assignedTo?: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IWorkOrderRepository extends Repository<WorkOrder> {
+  findByWoNumber(woNumber: string): Promise<WorkOrder | null>;
+  findByManufacturingOrderId(moId: UUID): Promise<WorkOrder[]>;
+  findByStatus(status: string, pagination?: Pagination): Promise<PaginatedResult<WorkOrder>>;
+  findByWorkCenterId(workCenterId: UUID, pagination?: Pagination): Promise<PaginatedResult<WorkOrder>>;
+  findByAssignedTo(userId: UUID, pagination?: Pagination): Promise<PaginatedResult<WorkOrder>>;
   generateWoNumber(): Promise<string>;
   existsByWoNumber(woNumber: string): Promise<boolean>;
 }
@@ -108,11 +133,24 @@ export interface IStockLedgerRepository {
   ): Promise<PaginatedResult<import('@domain/entities/StockLedger').StockLedger>>;
 }
 
+// Simple StockMovement interface for repository return type
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName?: string;
+  type: 'in' | 'out';
+  quantity: number;
+  reference?: string;
+  referenceType?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface IStockMovementRepository {
-  findRecent(options?: { limit?: number; warehouseId?: UUID }): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
-  findByProductId(productId: UUID, warehouseId?: UUID): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
-  findByReference(referenceId: UUID, referenceType?: string): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
-  findByDateRange(startDate: Date, endDate: Date, warehouseId?: UUID): Promise<import('@domain/entities/StockLedger').StockLedger[]>;
+  findRecent(options?: { limit?: number; warehouseId?: UUID }): Promise<StockMovement[]>;
+  findByProductId(productId: UUID, warehouseId?: UUID): Promise<StockMovement[]>;
+  findByReference(referenceId: UUID, referenceType?: string): Promise<StockMovement[]>;
+  findByDateRange(startDate: Date, endDate: Date, warehouseId?: UUID): Promise<StockMovement[]>;
 }
 
 export interface IMaterialReservationRepository extends Repository<import('@domain/entities/MaterialReservation').MaterialReservation> {
@@ -128,9 +166,25 @@ export interface IWarehouseRepository extends Repository<import('@domain/entitie
   existsByCode(code: string): Promise<boolean>;
 }
 
-export interface IWorkCenterRepository extends Repository<import('@domain/entities/WorkCenter').WorkCenter> {
-  findByCode(code: string): Promise<import('@domain/entities/WorkCenter').WorkCenter | null>;
-  findActiveWorkCenters(): Promise<import('@domain/entities/WorkCenter').WorkCenter[]>;
+// Simple WorkCenter interface for repository return type
+export interface WorkCenter {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  utilization: number;
+  capacity: number;
+  efficiency: number;
+  oeeScore?: number;
+  downtimeHours?: number;
+  productiveHours?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IWorkCenterRepository extends Repository<WorkCenter> {
+  findByCode(code: string): Promise<WorkCenter | null>;
+  findActiveWorkCenters(): Promise<WorkCenter[]>;
   existsByCode(code: string): Promise<boolean>;
 }
 

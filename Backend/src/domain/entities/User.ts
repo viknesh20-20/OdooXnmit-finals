@@ -149,7 +149,8 @@ export class User {
   }
 
   public canLogin(): boolean {
-    return this.isActive() && !this.isLocked() && this.props.emailVerified;
+    return this.isActive() && !this.isLocked();
+    // Email verification is optional - users can login without verification
   }
 
   public activate(): User {

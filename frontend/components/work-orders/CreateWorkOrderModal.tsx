@@ -8,20 +8,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { X, Loader2 } from "lucide-react"
-import type { WorkOrder, User } from "@/types"
+import type { WorkOrder, WorkOrderCreateRequest } from "@/types"
 import { generateReference } from "@/lib/idGenerator"
 import { useManufacturingOrders } from "@/hooks/useManufacturingOrders"
 import { useWorkCenters } from "@/hooks/useWorkCenters"
+import { useActiveUsers } from "@/hooks/useUsers"
 
 interface CreateWorkOrderModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (workOrderData: Omit<WorkOrder, "id">) => Promise<WorkOrder>
+  onSubmit: (workOrderData: WorkOrderCreateRequest) => Promise<WorkOrder>
 }
 
 export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const { orders } = useManufacturingOrders()
   const { workCenters } = useWorkCenters()
+  const { users } = useActiveUsers()
   
   const [formData, setFormData] = useState({
     manufacturingOrderId: "",
@@ -32,22 +34,9 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
     status: "pending" as WorkOrder["status"],
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock users data - in real app this would come from a users API
-  const mockUsers: User[] = [
-    {
-      id: "1", email: "john.doe@manufacturing.com", name: "John Doe", firstName: "John", lastName: "Doe",
-      role: "manager", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "2", email: "jane.smith@manufacturing.com", name: "Jane Smith", firstName: "Jane", lastName: "Smith",
-      role: "operator", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "3", email: "mike.wilson@manufacturing.com", name: "Mike Wilson", firstName: "Mike", lastName: "Wilson",
-      role: "manager", isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    },
-  ]
+
 
   const operationTypes = [
     { value: "assembly", label: "Assembly" },
@@ -62,16 +51,42 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
     try {
+      // Validate required fields
+      if (!formData.manufacturingOrderId) {
+        setError("Manufacturing Order is required")
+        return
+      }
+      if (!formData.workCenter) {
+        setError("Work Center is required")
+        return
+      }
+      if (!formData.operation) {
+        setError("Operation is required")
+        return
+      }
+      if (!formData.duration || Number.parseInt(formData.duration) <= 0) {
+        setError("Duration must be greater than 0")
+        return
+      }
+
+      // Backend expects snake_case field names and UUIDs
       await onSubmit({
-        reference: generateReference('workorder'),
-        manufacturingOrderId: formData.manufacturingOrderId,
+        wo_number: generateReference('workorder'),
+        manufacturing_order_id: formData.manufacturingOrderId,
         operation: formData.operation,
-        workCenter: formData.workCenter,
+        work_center_id: formData.workCenter, // This should be a UUID
         duration: Number.parseInt(formData.duration),
-        assignee: formData.assignee,
+        assigned_to: formData.assignee || undefined, // This should be a UUID or undefined
         status: formData.status,
+        sequence: 1, // Required field
+        pause_time: 0, // Required field with default
+        dependencies: [], // Required field with default
+        quality_checks: [], // Required field with default
+        time_entries: [], // Required field with default
+        metadata: {}, // Required field with default
       })
 
       // Reset form
@@ -84,6 +99,20 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
         status: "pending",
       })
       onClose()
+    } catch (err) {
+      console.error('Failed to create work order:', err)
+      let errorMessage = 'Failed to create work order'
+
+      if (err instanceof Error) {
+        errorMessage = err.message
+        // If it's an API error with validation details, use the detailed message
+        if (errorMessage.includes('Validation failed') || errorMessage.includes('required') || errorMessage.includes('must be')) {
+          // The enhanced API error handler will have already formatted validation messages
+          errorMessage = err.message
+        }
+      }
+
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -113,6 +142,11 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
           </div>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="manufacturingOrderId">Manufacturing Order</Label>
@@ -126,7 +160,7 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
                 <SelectContent>
                   {orders.map((order) => (
                     <SelectItem key={order.id} value={order.id}>
-                      {order.reference} - {order.productName}
+                      {order.reference || order.id} - {order.productName || 'Unknown Product'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -164,7 +198,7 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
                 <SelectContent>
                   {workCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>
-                      {center.name} - {center.status}
+                      {center.name} - {typeof center.status === 'string' ? center.status : 'active'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -197,9 +231,9 @@ export const CreateWorkOrderModal: React.FC<CreateWorkOrderModalProps> = ({ isOp
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.name}>
-                      {user.name} - {user.role}
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.fullName || `${user.firstName} ${user.lastName}`} - {user.roleName || 'User'}
                     </SelectItem>
                   ))}
                 </SelectContent>

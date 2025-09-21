@@ -129,9 +129,9 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
             msg: 'Phone number must be in valid format'
           }
         },
-        set(value: string | null) {
+        set(value: string | null | undefined) {
           // Convert empty string to null to avoid validation on empty values
-          this.setDataValue('phone', value === '' ? null : value);
+          this.setDataValue('phone', (value === '' || value === null) ? undefined : value);
         }
       },
       status: {

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import type { ManufacturingOrder, BOM, User, CreateManufacturingOrderForm } from "@/types"
+import type { ManufacturingOrder, BOM, CreateManufacturingOrderForm } from "@/types"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,9 @@ import { useManufacturingOrders } from "@/hooks/useManufacturingOrders"
 import { useProducts } from "@/hooks/useProducts"
 import { useBOMs } from "@/hooks/useBOMs"
 import { useWorkCenters } from "@/hooks/useWorkCenters"
+import { useActiveUsers } from "@/hooks/useUsers"
+import { useAuth } from "@/contexts/AuthContext"
+import { FormError, FieldError } from "@/components/ui/form-error"
 import { Plus } from "lucide-react"
 import { PRIORITY_LEVELS } from "@/types"
 import { generateReference } from "@/lib/idGenerator"
@@ -21,51 +24,17 @@ interface CreateOrderModalProps {
   onOrderCreated: (order: ManufacturingOrder) => void
 }
 
-// Mock users data - in real app this would come from a users API
-const mockUsers: User[] = [
-  {
-    id: "1",
-    email: "john.doe@manufacturing.com",
-    name: "John Doe",
-    firstName: "John",
-    lastName: "Doe",
-    role: "manager",
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    email: "jane.smith@manufacturing.com",
-    name: "Jane Smith",
-    firstName: "Jane",
-    lastName: "Smith",
-    role: "operator",
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    email: "mike.wilson@manufacturing.com",
-    name: "Mike Wilson",
-    firstName: "Mike",
-    lastName: "Wilson",
-    role: "manager",
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
-
 export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreated }) => {
   const { createOrder } = useManufacturingOrders()
-  const { products } = useProducts()
-  const { boms } = useBOMs()
-  const { workCenters } = useWorkCenters()
-  
+  const { products, loading: productsLoading, error: productsError } = useProducts()
+  const { boms, loading: bomsLoading, error: bomsError } = useBOMs()
+  const { workCenters, loading: workCentersLoading, error: workCentersError } = useWorkCenters()
+  const { users, loading: usersLoading, error: usersError } = useActiveUsers()
+  const { user } = useAuth()
+
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState<CreateManufacturingOrderForm>({
     productId: "",
     quantity: 1,
@@ -94,28 +63,66 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
     }
   }, [formData.productId, boms])
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.productId.trim()) {
+      newErrors.productId = 'Product is required'
+    }
+    if (!formData.bomId.trim()) {
+      newErrors.bomId = 'Bill of Materials is required'
+    }
+    if (formData.quantity <= 0) {
+      newErrors.quantity = 'Quantity must be greater than 0'
+    }
+    if (!formData.dueDate.trim()) {
+      newErrors.dueDate = 'Due date is required'
+    }
+    if (!formData.assigneeId.trim()) {
+      newErrors.assigneeId = 'Assignee is required'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
     setIsSubmitting(true)
+    setErrors({})
 
     try {
+      if (!user?.id) {
+        throw new Error('User not authenticated')
+      }
+
       const selectedProduct = products.find(p => p.id === formData.productId)
       const selectedBOM = boms.find(b => b.id === formData.bomId)
-      const selectedAssignee = mockUsers.find(u => u.id === formData.assigneeId)
+      const selectedAssignee = users.find(u => u.id === formData.assigneeId)
       const selectedWorkCenter = workCenters.find(wc => wc.id === formData.workCenterId)
 
       const newOrder: Omit<ManufacturingOrder, 'id' | 'createdAt' | 'updatedAt'> = {
         reference: generateReference('manufacturing'),
+        moNumber: `MO-${Date.now()}`,
         productId: formData.productId,
         productName: selectedProduct?.name || "",
+        productCode: selectedProduct?.code || "",
         quantity: formData.quantity,
+        quantityUnit: selectedProduct?.unit || "pieces",
         status: "planned",
         priority: formData.priority,
         startDate: new Date().toISOString(),
         dueDate: formData.dueDate,
+        plannedStartDate: new Date().toISOString(),
+        plannedEndDate: formData.dueDate,
         assigneeId: formData.assigneeId,
-        assigneeName: selectedAssignee?.name || "",
-        assignee: selectedAssignee?.name || "", // Backward compatibility
+        assigneeName: selectedAssignee?.fullName || `${selectedAssignee?.firstName} ${selectedAssignee?.lastName}` || "",
+        assignee: selectedAssignee?.fullName || `${selectedAssignee?.firstName} ${selectedAssignee?.lastName}` || "", // Backward compatibility
         bomId: formData.bomId,
         bomName: selectedBOM?.reference || selectedBOM?.productName || "",
         workCenterId: formData.workCenterId,
@@ -126,7 +133,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
         scrapQuantity: 0,
         progress: 0,
         notes: formData.notes,
-        createdBy: "current-user", // In real app, get from auth context
+        createdBy: user.id, // Current authenticated user
       }
 
       const createdOrder = await createOrder(newOrder)
@@ -143,9 +150,18 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
         workCenterId: "",
         notes: "",
       })
+      setErrors({})
       setOpen(false)
     } catch (error) {
       console.error("Error creating manufacturing order:", error)
+      let errorMessage = 'Failed to create manufacturing order'
+
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      // Set a general error that can be displayed to the user
+      setErrors({ submit: errorMessage })
     } finally {
       setIsSubmitting(false)
     }
@@ -166,6 +182,37 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
           <DialogTitle>Create Manufacturing Order</DialogTitle>
           <DialogDescription>Create a new manufacturing order to start production planning.</DialogDescription>
         </DialogHeader>
+
+        {/* Submit Error Display */}
+        {errors.submit && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{errors.submit}</p>
+          </div>
+        )}
+
+        {/* Form Error Summary */}
+        {Object.keys(errors).filter(key => key !== 'submit').length > 0 && (
+          <FormError
+            error={Object.values(errors).filter((_, index) => Object.keys(errors)[index] !== 'submit')}
+            variant="destructive"
+            className="mb-4"
+          />
+        )}
+
+        {/* Loading Errors */}
+        {(productsError || bomsError || workCentersError || usersError) && (
+          <FormError
+            error={[
+              productsError && `Products: ${productsError}`,
+              bomsError && `BOMs: ${bomsError}`,
+              workCentersError && `Work Centers: ${workCentersError}`,
+              usersError && `Users: ${usersError}`
+            ].filter((error): error is string => Boolean(error))}
+            variant="destructive"
+            className="mb-4"
+          />
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -178,13 +225,20 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
                   <SelectValue placeholder="Select product to manufacture" />
                 </SelectTrigger>
                 <SelectContent>
-                  {finishedGoods.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - {product.code || product.id}
-                    </SelectItem>
-                  ))}
+                  {productsLoading ? (
+                    <SelectItem value="loading" disabled>Loading products...</SelectItem>
+                  ) : finishedGoods.length === 0 ? (
+                    <SelectItem value="no-products" disabled>No products available</SelectItem>
+                  ) : (
+                    finishedGoods.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} - {product.code || product.id}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              <FieldError error={errors.productId} />
             </div>
             
             <div className="space-y-2">
@@ -198,6 +252,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
                 placeholder="Enter quantity"
                 required
               />
+              <FieldError error={errors.quantity} />
             </div>
           </div>
 
@@ -213,13 +268,22 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
                   <SelectValue placeholder={!formData.productId ? "Select product first" : "Select BOM"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredBOMs.map((bom) => (
-                    <SelectItem key={bom.id} value={bom.id}>
-                      {bom.reference || bom.version} {bom.isDefault && "(Default)"}
-                    </SelectItem>
-                  ))}
+                  {bomsLoading ? (
+                    <SelectItem value="loading-boms" disabled>Loading BOMs...</SelectItem>
+                  ) : !formData.productId ? (
+                    <SelectItem value="select-product-first" disabled>Select product first</SelectItem>
+                  ) : filteredBOMs.length === 0 ? (
+                    <SelectItem value="no-boms" disabled>No BOMs available for this product</SelectItem>
+                  ) : (
+                    filteredBOMs.map((bom) => (
+                      <SelectItem key={bom.id} value={bom.id}>
+                        {bom.reference || bom.version} {bom.isDefault && "(Default)"}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              <FieldError error={errors.bomId} />
             </div>
 
             <div className="space-y-2">
@@ -232,13 +296,20 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockUsers.filter(user => user.isActive).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name} - {user.role}
-                    </SelectItem>
-                  ))}
+                  {usersLoading ? (
+                    <SelectItem value="loading-users" disabled>Loading users...</SelectItem>
+                  ) : users.length === 0 ? (
+                    <SelectItem value="no-users" disabled>No users available</SelectItem>
+                  ) : (
+                    users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.fullName || `${user.firstName} ${user.lastName}`} - {user.roleName || 'User'}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              <FieldError error={errors.assigneeId} />
             </div>
           </div>
 
@@ -272,6 +343,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
                 min={new Date().toISOString().split('T')[0]}
                 required
               />
+              <FieldError error={errors.dueDate} />
             </div>
           </div>
 
@@ -285,11 +357,19 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
                 <SelectValue placeholder="Select work center (optional)" />
               </SelectTrigger>
               <SelectContent>
-                {workCenters.filter(wc => wc.status === "active").map((workCenter) => (
-                  <SelectItem key={workCenter.id} value={workCenter.id}>
-                    {workCenter.name} - ${workCenter.costPerHour}/hr
-                  </SelectItem>
-                ))}
+                {workCentersLoading ? (
+                  <SelectItem value="loading-workcenters" disabled>Loading work centers...</SelectItem>
+                ) : workCentersError ? (
+                  <SelectItem value="error-workcenters" disabled>Error loading work centers</SelectItem>
+                ) : workCenters.filter(wc => wc.status === "active").length === 0 ? (
+                  <SelectItem value="no-workcenters" disabled>No active work centers available</SelectItem>
+                ) : (
+                  workCenters.filter(wc => wc.status === "active").map((workCenter) => (
+                    <SelectItem key={workCenter.id} value={workCenter.id}>
+                      {workCenter.name} - ${workCenter.costPerHour}/hr
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

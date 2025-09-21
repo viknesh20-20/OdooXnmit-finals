@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Orders Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .work-order { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #007bff; }
+        .status-pending { border-left-color: #6c757d; }
+        .status-in-progress { border-left-color: #007bff; }
+        .status-paused { border-left-color: #ffc107; }
+        .status-completed { border-left-color: #28a745; }
+        button { background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button.pause { background: #ffc107; color: #212529; }
+        button.complete { background: #28a745; }
+        button.start { background: #007bff; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏭 Work Orders Integration Test</h1>
+        <p>Testing Work Orders page with real database data</p>
+
+        <!-- Statistics -->
+        <div class="section">
+            <h2>📊 Work Orders Statistics</h2>
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCount">-</div>
+                    <div>Total Work Orders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingCount">-</div>
+                    <div>Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="inProgressCount">-</div>
+                    <div>In Progress</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pausedCount">-</div>
+                    <div>Paused</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedCount">-</div>
+                    <div>Completed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Test Results -->
+        <div class="section">
+            <h2>🔌 API Connection Test</h2>
+            <div id="apiTest"></div>
+        </div>
+
+        <!-- Work Orders List -->
+        <div class="section">
+            <h2>📋 Work Orders from Database</h2>
+            <button onclick="fetchWorkOrders()">🔄 Refresh Work Orders</button>
+            <div id="workOrdersList"></div>
+        </div>
+
+        <!-- Action Test -->
+        <div class="section">
+            <h2>⚡ Action Test</h2>
+            <p>Test start, pause, and complete operations:</p>
+            <div id="actionTest"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api/v1';
+        let authToken = '';
+        let workOrders = [];
+
+        // Login and get token
+        async function login() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usernameOrEmail: 'admin@manufacturing.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    authToken = data.data.accessToken;
+                    return true;
+                } else {
+                    throw new Error(data.error?.message || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                return false;
+            }
+        }
+
+        // Fetch work orders
+        async function fetchWorkOrders() {
+            const apiTestDiv = document.getElementById('apiTest');
+            const workOrdersDiv = document.getElementById('workOrdersList');
+            
+            try {
+                apiTestDiv.innerHTML = '<div class="info">🔄 Testing API connection...</div>';
+                
+                if (!authToken) {
+                    const loginSuccess = await login();
+                    if (!loginSuccess) {
+                        throw new Error('Authentication failed');
+                    }
+                }
+
+                const response = await fetch(`${API_BASE_URL}/work-orders`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    workOrders = data.data.workOrders;
+                    apiTestDiv.innerHTML = `
+                        <div class="success">
+                            ✅ API Connection Successful!
+                            <br>Found ${workOrders.length} work orders in database
+                            <br>Response time: ${new Date().toLocaleTimeString()}
+                        </div>
+                    `;
+                    
+                    displayWorkOrders();
+                    updateStatistics();
+                } else {
+                    throw new Error(data.error?.message || 'API request failed');
+                }
+            } catch (error) {
+                apiTestDiv.innerHTML = `
+                    <div class="error">
+                        ❌ API Connection Failed: ${error.message}
+                    </div>
+                `;
+                workOrdersDiv.innerHTML = '<div class="error">Unable to load work orders</div>';
+            }
+        }
+
+        // Display work orders
+        function displayWorkOrders() {
+            const workOrdersDiv = document.getElementById('workOrdersList');
+            
+            if (workOrders.length === 0) {
+                workOrdersDiv.innerHTML = '<div class="info">No work orders found in database</div>';
+                return;
+            }
+
+            let html = '';
+            workOrders.forEach(wo => {
+                html += `
+                    <div class="work-order status-${wo.status.replace('-', '')}">
+                        <div style="display: flex; justify-content: between; align-items: center;">
+                            <div style="flex: 1;">
+                                <h3>${wo.operation} (${wo.reference || wo.woNumber})</h3>
+                                <p><strong>Status:</strong> ${wo.status} | <strong>Priority:</strong> ${wo.priority}</p>
+                                <p><strong>Work Center:</strong> ${wo.workCenterName || wo.workCenter?.name || 'N/A'}</p>
+                                <p><strong>MO:</strong> ${wo.manufacturingOrderRef || wo.manufacturingOrderId}</p>
+                                <p><strong>Duration:</strong> ${wo.duration} min (estimated)</p>
+                                ${wo.instructions ? `<p><strong>Instructions:</strong> ${wo.instructions.substring(0, 100)}...</p>` : ''}
+                            </div>
+                            <div>
+                                ${getActionButtons(wo)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            workOrdersDiv.innerHTML = html;
+        }
+
+        // Get action buttons based on status
+        function getActionButtons(wo) {
+            switch (wo.status) {
+                case 'pending':
+                    return `<button class="start" onclick="startWorkOrder('${wo.id}')">▶️ Start</button>`;
+                case 'in-progress':
+                    return `
+                        <button class="pause" onclick="pauseWorkOrder('${wo.id}')">⏸️ Pause</button>
+                        <button class="complete" onclick="completeWorkOrder('${wo.id}')">✅ Complete</button>
+                    `;
+                case 'paused':
+                    return `
+                        <button class="start" onclick="startWorkOrder('${wo.id}')">▶️ Resume</button>
+                        <button class="complete" onclick="completeWorkOrder('${wo.id}')">✅ Complete</button>
+                    `;
+                case 'completed':
+                    return '<span style="color: #28a745;">✅ Completed</span>';
+                default:
+                    return '';
+            }
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const total = workOrders.length;
+            const pending = workOrders.filter(wo => wo.status === 'pending').length;
+            const inProgress = workOrders.filter(wo => wo.status === 'in-progress').length;
+            const paused = workOrders.filter(wo => wo.status === 'paused').length;
+            const completed = workOrders.filter(wo => wo.status === 'completed').length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('inProgressCount').textContent = inProgress;
+            document.getElementById('pausedCount').textContent = paused;
+            document.getElementById('completedCount').textContent = completed;
+        }
+
+        // Work order actions
+        async function startWorkOrder(id) {
+            await performAction(id, 'start', 'Starting work order...');
+        }
+
+        async function pauseWorkOrder(id) {
+            await performAction(id, 'pause', 'Pausing work order...');
+        }
+
+        async function completeWorkOrder(id) {
+            await performAction(id, 'complete', 'Completing work order...');
+        }
+
+        async function performAction(id, action, message) {
+            const actionTestDiv = document.getElementById('actionTest');
+            
+            try {
+                actionTestDiv.innerHTML = `<div class="info">${message}</div>`;
+                
+                const response = await fetch(`${API_BASE_URL}/work-orders/${id}/${action}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        comments: `${action} via integration test`
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    actionTestDiv.innerHTML = `<div class="success">✅ ${action} successful!</div>`;
+                    // Refresh the work orders list
+                    await fetchWorkOrders();
+                } else {
+                    throw new Error(data.error?.message || `${action} failed`);
+                }
+            } catch (error) {
+                actionTestDiv.innerHTML = `<div class="error">❌ ${action} failed: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            fetchWorkOrders();
+        };
+    </script>
+</body>
+</html>

@@ -542,7 +542,7 @@ export const registerValidation = [
     .trim(),
   
   body('roleId')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isUUID()
     .withMessage('Role ID must be a valid UUID'),
 ];

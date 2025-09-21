@@ -2,25 +2,9 @@ import { inject, injectable } from 'inversify';
 import { Op } from 'sequelize';
 
 import { UUID, PaginatedResult, Pagination } from '@/types/common';
-import { IWorkCenterRepository } from '@domain/repositories/IUserRepository';
+import { IWorkCenterRepository, WorkCenter } from '@domain/repositories/IUserRepository';
 import { DatabaseConnection } from '@infrastructure/database/config/DatabaseConfig';
 import { ILogger } from '@application/interfaces/IPasswordService';
-
-// Simple WorkCenter interface for dashboard data
-export interface WorkCenter {
-  id: string;
-  code: string;
-  name: string;
-  status: string;
-  utilization: number;
-  capacity: number;
-  efficiency: number;
-  oeeScore?: number;
-  downtimeHours?: number;
-  productiveHours?: number;
-  createdAt: string;
-  updatedAt: string;
-}
 
 @injectable()
 export class WorkCenterRepository implements IWorkCenterRepository {
@@ -39,25 +23,37 @@ export class WorkCenterRepository implements IWorkCenterRepository {
 
       return this.mapToWorkCenter(record);
     } catch (error) {
-      this.logger.error('Error finding work center by ID', { id, error });
+      this.logger.error('Error finding work center by ID', error as Error);
       throw error;
     }
   }
 
-  public async findAll(options?: { limit?: number; offset?: number }): Promise<WorkCenter[]> {
+  public async findAll(pagination?: Pagination): Promise<PaginatedResult<WorkCenter>> {
     try {
       const sequelize = this.databaseConnection.getSequelize();
       const WorkCenterModel = sequelize.models.WorkCenter as any;
 
-      const records = await WorkCenterModel.findAll({
-        limit: options?.limit || 50,
-        offset: options?.offset || 0,
+      const limit = pagination?.limit || 10;
+      const offset = pagination?.offset || 0;
+
+      const { count, rows } = await WorkCenterModel.findAndCountAll({
+        limit,
+        offset,
         order: [['name', 'ASC']]
       });
 
-      return records.map((record: any) => this.mapToWorkCenter(record));
+      const data = rows.map((record: any) => this.mapToWorkCenter(record));
+      const totalPages = Math.ceil(count / limit);
+
+      return {
+        data,
+        total: count,
+        page: pagination?.page || 1,
+        limit,
+        totalPages
+      };
     } catch (error) {
-      this.logger.error('Error finding all work centers', { error });
+      this.logger.error('Error finding all work centers', error as Error);
       throw error;
     }
   }
@@ -83,7 +79,7 @@ export class WorkCenterRepository implements IWorkCenterRepository {
 
       return this.mapToWorkCenter(record);
     } catch (error) {
-      this.logger.error('Error saving work center', { workCenter, error });
+      this.logger.error('Error saving work center', error as Error);
       throw error;
     }
   }
@@ -95,7 +91,7 @@ export class WorkCenterRepository implements IWorkCenterRepository {
 
       await WorkCenterModel.destroy({ where: { id } });
     } catch (error) {
-      this.logger.error('Error deleting work center', { id, error });
+      this.logger.error('Error deleting work center', error as Error);
       throw error;
     }
   }
@@ -110,7 +106,7 @@ export class WorkCenterRepository implements IWorkCenterRepository {
 
       return this.mapToWorkCenter(record);
     } catch (error) {
-      this.logger.error('Error finding work center by code', { code, error });
+      this.logger.error('Error finding work center by code', error as Error);
       throw error;
     }
   }
@@ -127,7 +123,7 @@ export class WorkCenterRepository implements IWorkCenterRepository {
 
       return records.map((record: any) => this.mapToWorkCenter(record));
     } catch (error) {
-      this.logger.error('Error finding active work centers', { error });
+      this.logger.error('Error finding active work centers', error as Error);
       throw error;
     }
   }
@@ -140,7 +136,7 @@ export class WorkCenterRepository implements IWorkCenterRepository {
       const count = await WorkCenterModel.count({ where: { code } });
       return count > 0;
     } catch (error) {
-      this.logger.error('Error checking work center existence by code', { code, error });
+      this.logger.error('Error checking work center existence by code', error as Error);
       throw error;
     }
   }
@@ -157,8 +153,8 @@ export class WorkCenterRepository implements IWorkCenterRepository {
       oeeScore: record.oee_score,
       downtimeHours: record.downtime_hours,
       productiveHours: record.productive_hours,
-      createdAt: record.created_at || record.createdAt,
-      updatedAt: record.updated_at || record.updatedAt
+      createdAt: new Date(record.created_at || record.createdAt),
+      updatedAt: new Date(record.updated_at || record.updatedAt)
     };
   }
 }

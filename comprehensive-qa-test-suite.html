@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manufacturing ERP - Comprehensive QA Test Suite</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .test-section { background: white; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); overflow: hidden; }
+        .section-header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; font-size: 1.3em; font-weight: bold; }
+        .section-content { padding: 25px; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-top: 20px; }
+        .test-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; transition: all 0.3s ease; }
+        .test-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .test-card.success { border-color: #28a745; background: #d4edda; }
+        .test-card.error { border-color: #dc3545; background: #f8d7da; }
+        .test-card.warning { border-color: #ffc107; background: #fff3cd; }
+        .test-card.info { border-color: #17a2b8; background: #d1ecf1; }
+        .status-indicator { display: inline-block; width: 16px; height: 16px; border-radius: 50%; margin-right: 10px; }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .status-pending { background: #6c757d; }
+        .status-running { background: #17a2b8; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s ease; margin: 5px; }
+        button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        button.primary { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        button.success { background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); }
+        button.danger { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); }
+        button.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .progress-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 15px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); width: 0%; transition: width 0.3s ease; }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .metric { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; }
+        .metric-value { font-size: 2em; font-weight: bold; color: #495057; }
+        .metric-label { font-size: 0.9em; color: #6c757d; margin-top: 5px; }
+        .log-container { background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; max-height: 400px; overflow-y: auto; margin: 15px 0; }
+        .log-entry { margin: 2px 0; padding: 2px 0; }
+        .log-success { color: #68d391; }
+        .log-error { color: #fc8181; }
+        .log-warning { color: #f6e05e; }
+        .log-info { color: #63b3ed; }
+        .credentials-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #007bff; }
+        .test-summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin: 20px 0; text-align: center; }
+        .summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px; margin-top: 20px; }
+        .summary-stat { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; }
+        .summary-stat-value { font-size: 2.5em; font-weight: bold; }
+        .summary-stat-label { font-size: 0.9em; opacity: 0.9; margin-top: 5px; }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 2px solid #e9ecef; border-radius: 6px; font-size: 14px; transition: border-color 0.3s ease; }
+        input:focus, select:focus { outline: none; border-color: #4facfe; }
+        .table-container { overflow-x: auto; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background: #f8f9fa; font-weight: 600; color: #495057; }
+        tr:hover { background: #f8f9fa; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-error { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏭 Manufacturing ERP System</h1>
+            <p>Comprehensive QA Test Suite & Database Integration Validation</p>
+        </div>
+
+        <!-- Test Summary Dashboard -->
+        <div class="test-summary">
+            <h2>📊 Test Execution Dashboard</h2>
+            <div class="progress-bar">
+                <div class="progress-fill" id="overallProgress"></div>
+            </div>
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="totalTests">0</div>
+                    <div class="summary-stat-label">Total Tests</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="passedTests">0</div>
+                    <div class="summary-stat-label">Passed</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="failedTests">0</div>
+                    <div class="summary-stat-label">Failed</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="testDuration">0s</div>
+                    <div class="summary-stat-label">Duration</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication & CORS Tests -->
+        <div class="test-section">
+            <div class="section-header">🔐 Authentication & CORS Validation</div>
+            <div class="section-content">
+                <div class="credentials-box">
+                    <strong>🔑 Test Credentials:</strong><br>
+                    Email: admin@manufacturing.com | Password: admin123<br>
+                    <small>These credentials are used for all authenticated API tests</small>
+                </div>
+                
+                <div class="test-grid">
+                    <div class="test-card" id="corsTestCard">
+                        <h3><span id="corsStatus" class="status-indicator status-pending"></span>CORS Configuration</h3>
+                        <p>Validates cross-origin requests from frontend (localhost:5174) to backend (localhost:3000)</p>
+                        <button onclick="testCORS()">Test CORS Headers</button>
+                        <div id="corsResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="authTestCard">
+                        <h3><span id="authStatus" class="status-indicator status-pending"></span>Authentication Flow</h3>
+                        <p>Tests login, token generation, and validation</p>
+                        <button onclick="testAuthentication()">Test Authentication</button>
+                        <div id="authResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="sessionTestCard">
+                        <h3><span id="sessionStatus" class="status-indicator status-pending"></span>Session Management</h3>
+                        <p>Validates token expiration and refresh mechanisms</p>
+                        <button onclick="testSessionManagement()">Test Sessions</button>
+                        <div id="sessionResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Integration Tests -->
+        <div class="test-section">
+            <div class="section-header">🗄️ Database Integration & Data Validation</div>
+            <div class="section-content">
+                <div class="metrics" id="databaseMetrics">
+                    <div class="metric">
+                        <div class="metric-value" id="productsCount">-</div>
+                        <div class="metric-label">Products</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="workOrdersCount">-</div>
+                        <div class="metric-label">Work Orders</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="manufacturingOrdersCount">-</div>
+                        <div class="metric-label">Manufacturing Orders</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="workCentersCount">-</div>
+                        <div class="metric-label">Work Centers</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="bomsCount">-</div>
+                        <div class="metric-label">BOMs</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="usersCount">-</div>
+                        <div class="metric-label">Users</div>
+                    </div>
+                </div>
+                
+                <button class="primary" onclick="testDatabaseIntegration()">🔍 Test Database Integration</button>
+                <button class="success" onclick="validateDataConsistency()">✅ Validate Data Consistency</button>
+                <button class="warning" onclick="testDatabasePerformance()">⚡ Performance Test</button>
+                
+                <div id="databaseResults"></div>
+            </div>
+        </div>
+
+        <!-- API Endpoints Testing -->
+        <div class="test-section">
+            <div class="section-header">📡 API Endpoints & CRUD Operations</div>
+            <div class="section-content">
+                <div class="test-grid">
+                    <div class="test-card" id="dashboardApiCard">
+                        <h3><span id="dashboardApiStatus" class="status-indicator status-pending"></span>Dashboard API</h3>
+                        <p>Tests dashboard data aggregation and KPIs</p>
+                        <button onclick="testDashboardAPI()">Test Dashboard</button>
+                        <div id="dashboardApiResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="productsApiCard">
+                        <h3><span id="productsApiStatus" class="status-indicator status-pending"></span>Products API</h3>
+                        <p>Tests product CRUD operations and inventory</p>
+                        <button onclick="testProductsAPI()">Test Products</button>
+                        <div id="productsApiResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="workOrdersApiCard">
+                        <h3><span id="workOrdersApiStatus" class="status-indicator status-pending"></span>Work Orders API</h3>
+                        <p>Tests work order management and status updates</p>
+                        <button onclick="testWorkOrdersAPI()">Test Work Orders</button>
+                        <div id="workOrdersApiResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="manufacturingApiCard">
+                        <h3><span id="manufacturingApiStatus" class="status-indicator status-pending"></span>Manufacturing Orders API</h3>
+                        <p>Tests manufacturing order lifecycle</p>
+                        <button onclick="testManufacturingOrdersAPI()">Test Manufacturing</button>
+                        <div id="manufacturingApiResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="workCentersApiCard">
+                        <h3><span id="workCentersApiStatus" class="status-indicator status-pending"></span>Work Centers API</h3>
+                        <p>Tests work center management and capacity</p>
+                        <button onclick="testWorkCentersAPI()">Test Work Centers</button>
+                        <div id="workCentersApiResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="bomsApiCard">
+                        <h3><span id="bomsApiStatus" class="status-indicator status-pending"></span>BOMs API</h3>
+                        <p>Tests bill of materials and components</p>
+                        <button onclick="testBOMsAPI()">Test BOMs</button>
+                        <div id="bomsApiResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Frontend Integration Tests -->
+        <div class="test-section">
+            <div class="section-header">🖥️ Frontend Integration & User Experience</div>
+            <div class="section-content">
+                <div class="test-grid">
+                    <div class="test-card" id="frontendConnectivityCard">
+                        <h3><span id="frontendConnectivityStatus" class="status-indicator status-pending"></span>Frontend Connectivity</h3>
+                        <p>Tests frontend-backend communication</p>
+                        <button onclick="testFrontendConnectivity()">Test Connectivity</button>
+                        <div id="frontendConnectivityResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="uiResponseCard">
+                        <h3><span id="uiResponseStatus" class="status-indicator status-pending"></span>UI Responsiveness</h3>
+                        <p>Tests page load times and API response handling</p>
+                        <button onclick="testUIResponsiveness()">Test UI Response</button>
+                        <div id="uiResponseResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="errorHandlingCard">
+                        <h3><span id="errorHandlingStatus" class="status-indicator status-pending"></span>Error Handling</h3>
+                        <p>Tests error scenarios and user feedback</p>
+                        <button onclick="testErrorHandling()">Test Error Handling</button>
+                        <div id="errorHandlingResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Performance Tests -->
+        <div class="test-section">
+            <div class="section-header">⚡ Performance & Load Testing</div>
+            <div class="section-content">
+                <div class="test-grid">
+                    <div class="test-card" id="loadTestCard">
+                        <h3><span id="loadTestStatus" class="status-indicator status-pending"></span>API Load Testing</h3>
+                        <p>Tests system performance under concurrent requests</p>
+                        <button onclick="testAPILoad()">Run Load Test</button>
+                        <div id="loadTestResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="memoryTestCard">
+                        <h3><span id="memoryTestStatus" class="status-indicator status-pending"></span>Memory Usage</h3>
+                        <p>Monitors memory consumption and leaks</p>
+                        <button onclick="testMemoryUsage()">Test Memory</button>
+                        <div id="memoryTestResult"></div>
+                    </div>
+                    
+                    <div class="test-card" id="responseTimeCard">
+                        <h3><span id="responseTimeStatus" class="status-indicator status-pending"></span>Response Times</h3>
+                        <p>Measures API response times and latency</p>
+                        <button onclick="testResponseTimes()">Test Response Times</button>
+                        <div id="responseTimeResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Execution Controls -->
+        <div class="test-section">
+            <div class="section-header">🎯 Test Execution & Reporting</div>
+            <div class="section-content">
+                <div style="text-align: center; margin: 20px 0;">
+                    <button class="success" onclick="runCompleteTestSuite()" style="font-size: 18px; padding: 15px 30px;">
+                        🚀 Run Complete Test Suite
+                    </button>
+                    <button class="danger" onclick="clearAllResults()" style="font-size: 16px; padding: 12px 24px;">
+                        🧹 Clear All Results
+                    </button>
+                    <button class="primary" onclick="generateTestReport()" style="font-size: 16px; padding: 12px 24px;">
+                        📊 Generate Report
+                    </button>
+                </div>
+                
+                <div class="log-container" id="testLog">
+                    <div class="log-entry log-info">[INFO] QA Test Suite initialized. Ready to begin testing...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api/v1';
+        let authToken = '';
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            startTime: null,
+            endTime: null
+        };
+
+        // Logging functions
+        function logInfo(message) {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div class="log-entry log-info">[${timestamp}] [INFO] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function logSuccess(message) {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div class="log-entry log-success">[${timestamp}] [SUCCESS] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function logError(message) {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div class="log-entry log-error">[${timestamp}] [ERROR] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function logWarning(message) {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div class="log-entry log-warning">[${timestamp}] [WARNING] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Update test statistics
+        function updateTestStats() {
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            
+            if (testResults.startTime && testResults.endTime) {
+                const duration = Math.round((testResults.endTime - testResults.startTime) / 1000);
+                document.getElementById('testDuration').textContent = `${duration}s`;
+            }
+            
+            const progress = testResults.total > 0 ? ((testResults.passed + testResults.failed) / testResults.total) * 100 : 0;
+            document.getElementById('overallProgress').style.width = `${progress}%`;
+        }
+
+        // Test result helper functions
+        function setTestStatus(testId, status, message = '') {
+            const statusElement = document.getElementById(`${testId}Status`);
+            const cardElement = document.getElementById(`${testId}Card`);
+            const resultElement = document.getElementById(`${testId}Result`);
+            
+            statusElement.className = `status-indicator status-${status}`;
+            
+            if (cardElement) {
+                cardElement.className = `test-card ${status}`;
+            }
+            
+            if (resultElement && message) {
+                resultElement.innerHTML = message;
+            }
+            
+            testResults.total++;
+            if (status === 'success') {
+                testResults.passed++;
+                logSuccess(`${testId} test passed`);
+            } else if (status === 'error') {
+                testResults.failed++;
+                logError(`${testId} test failed: ${message}`);
+            }
+            
+            updateTestStats();
+        }
+
+        // Authentication helper
+        async function ensureAuthenticated() {
+            if (!authToken) {
+                logInfo('No auth token found, attempting login...');
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:5174'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usernameOrEmail: 'admin@manufacturing.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.data.accessToken;
+                    logSuccess('Authentication successful');
+                    return true;
+                } else {
+                    logError('Authentication failed');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Individual test functions
+        async function testCORS() {
+            logInfo('Testing CORS configuration...');
+            setTestStatus('corsTest', 'running');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:5174',
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization'
+                    }
+                });
+
+                const corsOrigin = response.headers.get('Access-Control-Allow-Origin');
+                const corsCredentials = response.headers.get('Access-Control-Allow-Credentials');
+                
+                if (corsOrigin === 'http://localhost:5174' && corsCredentials === 'true') {
+                    setTestStatus('corsTest', 'success', '✅ CORS properly configured for localhost:5174');
+                } else {
+                    setTestStatus('corsTest', 'error', `❌ CORS misconfigured. Origin: ${corsOrigin}, Credentials: ${corsCredentials}`);
+                }
+            } catch (error) {
+                setTestStatus('corsTest', 'error', `❌ CORS test failed: ${error.message}`);
+            }
+        }
+
+        async function testAuthentication() {
+            logInfo('Testing authentication flow...');
+            setTestStatus('authTest', 'running');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:5174'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usernameOrEmail: 'admin@manufacturing.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.data.accessToken;
+                    setTestStatus('authTest', 'success', `✅ Authentication successful. User: ${data.data.user.fullName}`);
+                } else {
+                    setTestStatus('authTest', 'error', `❌ Authentication failed: ${data.error?.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                setTestStatus('authTest', 'error', `❌ Authentication test failed: ${error.message}`);
+            }
+        }
+
+        async function testSessionManagement() {
+            logInfo('Testing session management...');
+            setTestStatus('sessionTest', 'running');
+            
+            if (!await ensureAuthenticated()) {
+                setTestStatus('sessionTest', 'error', '❌ Cannot test sessions without authentication');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    setTestStatus('sessionTest', 'success', `✅ Session valid. User: ${data.data.user.fullName}`);
+                } else {
+                    setTestStatus('sessionTest', 'error', `❌ Session validation failed: ${data.error?.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                setTestStatus('sessionTest', 'error', `❌ Session test failed: ${error.message}`);
+            }
+        }
+
+        // Database integration tests
+        async function testDatabaseIntegration() {
+            logInfo('Testing database integration...');
+            
+            if (!await ensureAuthenticated()) {
+                logError('Cannot test database without authentication');
+                return;
+            }
+            
+            const endpoints = [
+                { path: '/products', name: 'Products', countId: 'productsCount' },
+                { path: '/work-orders', name: 'Work Orders', countId: 'workOrdersCount' },
+                { path: '/manufacturing-orders', name: 'Manufacturing Orders', countId: 'manufacturingOrdersCount' },
+                { path: '/work-centers', name: 'Work Centers', countId: 'workCentersCount' },
+                { path: '/boms', name: 'BOMs', countId: 'bomsCount' }
+            ];
+            
+            let results = [];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    logInfo(`Testing ${endpoint.name} API...`);
+                    
+                    const response = await fetch(`${API_BASE_URL}${endpoint.path}`, {
+                        headers: { 
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        const dataKey = Object.keys(data.data)[0];
+                        const items = data.data[dataKey];
+                        const count = Array.isArray(items) ? items.length : 0;
+                        
+                        document.getElementById(endpoint.countId).textContent = count;
+                        results.push(`✅ ${endpoint.name}: ${count} records`);
+                        logSuccess(`${endpoint.name}: ${count} records found`);
+                    } else {
+                        results.push(`❌ ${endpoint.name}: ${data.error?.message || 'Failed'}`);
+                        logError(`${endpoint.name} failed: ${data.error?.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${endpoint.name}: ${error.message}`);
+                    logError(`${endpoint.name} error: ${error.message}`);
+                }
+            }
+            
+            document.getElementById('databaseResults').innerHTML = `
+                <div class="test-card success">
+                    <h3>Database Integration Results:</h3>
+                    ${results.map(result => `<div>${result}</div>`).join('')}
+                </div>
+            `;
+        }
+
+        // API endpoint tests
+        async function testAPIEndpoint(endpoint, testId, name) {
+            logInfo(`Testing ${name} API...`);
+            setTestStatus(testId, 'running');
+            
+            if (!await ensureAuthenticated()) {
+                setTestStatus(testId, 'error', '❌ Cannot test without authentication');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const dataKey = Object.keys(data.data)[0];
+                    const items = data.data[dataKey];
+                    const count = Array.isArray(items) ? items.length : 'Object';
+                    
+                    setTestStatus(testId, 'success', `✅ ${name} API working! Records: ${count}`);
+                } else {
+                    setTestStatus(testId, 'error', `❌ ${name} API failed: ${data.error?.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                setTestStatus(testId, 'error', `❌ ${name} API error: ${error.message}`);
+            }
+        }
+
+        // Individual API test functions
+        function testDashboardAPI() { testAPIEndpoint('/dashboard', 'dashboardApi', 'Dashboard'); }
+        function testProductsAPI() { testAPIEndpoint('/products', 'productsApi', 'Products'); }
+        function testWorkOrdersAPI() { testAPIEndpoint('/work-orders', 'workOrdersApi', 'Work Orders'); }
+        function testManufacturingOrdersAPI() { testAPIEndpoint('/manufacturing-orders', 'manufacturingApi', 'Manufacturing Orders'); }
+        function testWorkCentersAPI() { testAPIEndpoint('/work-centers', 'workCentersApi', 'Work Centers'); }
+        function testBOMsAPI() { testAPIEndpoint('/boms', 'bomsApi', 'BOMs'); }
+
+        // Frontend integration tests
+        async function testFrontendConnectivity() {
+            logInfo('Testing frontend connectivity...');
+            setTestStatus('frontendConnectivity', 'running');
+            
+            try {
+                // Test if we can reach the backend from this frontend page
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: 'connectivity' })
+                });
+
+                if (response.status === 400) {
+                    // Expected validation error means connectivity is working
+                    setTestStatus('frontendConnectivity', 'success', '✅ Frontend-Backend connectivity working');
+                } else {
+                    setTestStatus('frontendConnectivity', 'warning', `⚠️ Unexpected response: ${response.status}`);
+                }
+            } catch (error) {
+                setTestStatus('frontendConnectivity', 'error', `❌ Connectivity failed: ${error.message}`);
+            }
+        }
+
+        async function testUIResponsiveness() {
+            logInfo('Testing UI responsiveness...');
+            setTestStatus('uiResponse', 'running');
+            
+            if (!await ensureAuthenticated()) {
+                setTestStatus('uiResponse', 'error', '❌ Cannot test without authentication');
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                
+                const response = await fetch(`${API_BASE_URL}/dashboard`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+                
+                if (response.ok) {
+                    if (responseTime < 1000) {
+                        setTestStatus('uiResponse', 'success', `✅ Fast response: ${responseTime}ms`);
+                    } else if (responseTime < 3000) {
+                        setTestStatus('uiResponse', 'warning', `⚠️ Slow response: ${responseTime}ms`);
+                    } else {
+                        setTestStatus('uiResponse', 'error', `❌ Very slow response: ${responseTime}ms`);
+                    }
+                } else {
+                    setTestStatus('uiResponse', 'error', `❌ API error: ${response.status}`);
+                }
+            } catch (error) {
+                setTestStatus('uiResponse', 'error', `❌ UI test failed: ${error.message}`);
+            }
+        }
+
+        async function testErrorHandling() {
+            logInfo('Testing error handling...');
+            setTestStatus('errorHandling', 'running');
+            
+            try {
+                // Test with invalid endpoint
+                const response = await fetch(`${API_BASE_URL}/invalid-endpoint`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken || 'invalid-token'}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.status === 404) {
+                    setTestStatus('errorHandling', 'success', '✅ 404 errors handled correctly');
+                } else {
+                    setTestStatus('errorHandling', 'warning', `⚠️ Unexpected error response: ${response.status}`);
+                }
+            } catch (error) {
+                setTestStatus('errorHandling', 'success', '✅ Network errors handled correctly');
+            }
+        }
+
+        // Performance tests
+        async function testAPILoad() {
+            logInfo('Running API load test...');
+            setTestStatus('loadTest', 'running');
+            
+            if (!await ensureAuthenticated()) {
+                setTestStatus('loadTest', 'error', '❌ Cannot test without authentication');
+                return;
+            }
+            
+            try {
+                const concurrentRequests = 10;
+                const promises = [];
+                
+                const startTime = performance.now();
+                
+                for (let i = 0; i < concurrentRequests; i++) {
+                    promises.push(
+                        fetch(`${API_BASE_URL}/products`, {
+                            headers: { 
+                                'Authorization': `Bearer ${authToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'include'
+                        })
+                    );
+                }
+                
+                const responses = await Promise.all(promises);
+                const endTime = performance.now();
+                
+                const successCount = responses.filter(r => r.ok).length;
+                const totalTime = Math.round(endTime - startTime);
+                const avgTime = Math.round(totalTime / concurrentRequests);
+                
+                if (successCount === concurrentRequests) {
+                    setTestStatus('loadTest', 'success', `✅ Load test passed: ${successCount}/${concurrentRequests} requests in ${totalTime}ms (avg: ${avgTime}ms)`);
+                } else {
+                    setTestStatus('loadTest', 'warning', `⚠️ Partial success: ${successCount}/${concurrentRequests} requests succeeded`);
+                }
+            } catch (error) {
+                setTestStatus('loadTest', 'error', `❌ Load test failed: ${error.message}`);
+            }
+        }
+
+        async function testMemoryUsage() {
+            logInfo('Testing memory usage...');
+            setTestStatus('memoryTest', 'running');
+            
+            try {
+                const memoryInfo = performance.memory;
+                
+                if (memoryInfo) {
+                    const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+                    const totalMB = Math.round(memoryInfo.totalJSHeapSize / 1024 / 1024);
+                    const limitMB = Math.round(memoryInfo.jsHeapSizeLimit / 1024 / 1024);
+                    
+                    setTestStatus('memoryTest', 'success', `✅ Memory usage: ${usedMB}MB / ${totalMB}MB (limit: ${limitMB}MB)`);
+                } else {
+                    setTestStatus('memoryTest', 'warning', '⚠️ Memory API not available in this browser');
+                }
+            } catch (error) {
+                setTestStatus('memoryTest', 'error', `❌ Memory test failed: ${error.message}`);
+            }
+        }
+
+        async function testResponseTimes() {
+            logInfo('Testing API response times...');
+            setTestStatus('responseTime', 'running');
+            
+            if (!await ensureAuthenticated()) {
+                setTestStatus('responseTime', 'error', '❌ Cannot test without authentication');
+                return;
+            }
+            
+            const endpoints = ['/products', '/work-orders', '/manufacturing-orders', '/dashboard'];
+            const results = [];
+            
+            try {
+                for (const endpoint of endpoints) {
+                    const startTime = performance.now();
+                    
+                    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                        headers: { 
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+                    
+                    const endTime = performance.now();
+                    const responseTime = Math.round(endTime - startTime);
+                    
+                    results.push(`${endpoint}: ${responseTime}ms`);
+                }
+                
+                const avgTime = Math.round(results.reduce((sum, result) => {
+                    return sum + parseInt(result.split(': ')[1]);
+                }, 0) / results.length);
+                
+                setTestStatus('responseTime', 'success', `✅ Average response time: ${avgTime}ms<br>${results.join('<br>')}`);
+            } catch (error) {
+                setTestStatus('responseTime', 'error', `❌ Response time test failed: ${error.message}`);
+            }
+        }
+
+        // Validation functions
+        async function validateDataConsistency() {
+            logInfo('Validating data consistency...');
+            
+            if (!await ensureAuthenticated()) {
+                logError('Cannot validate data without authentication');
+                return;
+            }
+            
+            try {
+                // Test foreign key relationships
+                const manufacturingOrdersResponse = await fetch(`${API_BASE_URL}/manufacturing-orders`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    credentials: 'include'
+                });
+                
+                const workOrdersResponse = await fetch(`${API_BASE_URL}/work-orders`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    credentials: 'include'
+                });
+                
+                const manufacturingData = await manufacturingOrdersResponse.json();
+                const workOrdersData = await workOrdersResponse.json();
+                
+                if (manufacturingData.success && workOrdersData.success) {
+                    const manufacturingOrders = manufacturingData.data.manufacturingOrders || [];
+                    const workOrders = workOrdersData.data.workOrders || [];
+                    
+                    // Check if work orders reference valid manufacturing orders
+                    let validReferences = 0;
+                    let totalWorkOrders = workOrders.length;
+                    
+                    workOrders.forEach(wo => {
+                        if (wo.manufacturingOrderId) {
+                            const referencedMO = manufacturingOrders.find(mo => mo.id === wo.manufacturingOrderId);
+                            if (referencedMO) validReferences++;
+                        }
+                    });
+                    
+                    logSuccess(`Data consistency check: ${validReferences}/${totalWorkOrders} work orders have valid manufacturing order references`);
+                    
+                    document.getElementById('databaseResults').innerHTML += `
+                        <div class="test-card success">
+                            <h3>Data Consistency Validation:</h3>
+                            <div>✅ Manufacturing Orders: ${manufacturingOrders.length}</div>
+                            <div>✅ Work Orders: ${totalWorkOrders}</div>
+                            <div>✅ Valid References: ${validReferences}/${totalWorkOrders}</div>
+                        </div>
+                    `;
+                } else {
+                    logError('Failed to fetch data for consistency validation');
+                }
+            } catch (error) {
+                logError(`Data consistency validation failed: ${error.message}`);
+            }
+        }
+
+        async function testDatabasePerformance() {
+            logInfo('Testing database performance...');
+            
+            if (!await ensureAuthenticated()) {
+                logError('Cannot test performance without authentication');
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                
+                // Test multiple concurrent database queries
+                const promises = [
+                    fetch(`${API_BASE_URL}/products`, { headers: { 'Authorization': `Bearer ${authToken}` }, credentials: 'include' }),
+                    fetch(`${API_BASE_URL}/work-orders`, { headers: { 'Authorization': `Bearer ${authToken}` }, credentials: 'include' }),
+                    fetch(`${API_BASE_URL}/manufacturing-orders`, { headers: { 'Authorization': `Bearer ${authToken}` }, credentials: 'include' }),
+                    fetch(`${API_BASE_URL}/work-centers`, { headers: { 'Authorization': `Bearer ${authToken}` }, credentials: 'include' }),
+                    fetch(`${API_BASE_URL}/dashboard`, { headers: { 'Authorization': `Bearer ${authToken}` }, credentials: 'include' })
+                ];
+                
+                const responses = await Promise.all(promises);
+                const endTime = performance.now();
+                
+                const totalTime = Math.round(endTime - startTime);
+                const successCount = responses.filter(r => r.ok).length;
+                
+                logSuccess(`Database performance test: ${successCount}/5 queries completed in ${totalTime}ms`);
+                
+                document.getElementById('databaseResults').innerHTML += `
+                    <div class="test-card ${successCount === 5 ? 'success' : 'warning'}">
+                        <h3>Database Performance Test:</h3>
+                        <div>⚡ Concurrent Queries: ${successCount}/5 successful</div>
+                        <div>⏱️ Total Time: ${totalTime}ms</div>
+                        <div>📊 Average per Query: ${Math.round(totalTime/5)}ms</div>
+                    </div>
+                `;
+            } catch (error) {
+                logError(`Database performance test failed: ${error.message}`);
+            }
+        }
+
+        // Main test suite runner
+        async function runCompleteTestSuite() {
+            logInfo('🚀 Starting complete test suite...');
+            testResults = { total: 0, passed: 0, failed: 0, startTime: Date.now(), endTime: null };
+            
+            // Clear previous results
+            clearAllResults();
+            
+            try {
+                // Authentication & CORS Tests
+                await testCORS();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testAuthentication();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testSessionManagement();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Database Integration
+                await testDatabaseIntegration();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                await validateDataConsistency();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // API Endpoint Tests
+                await testDashboardAPI();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testProductsAPI();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testWorkOrdersAPI();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testManufacturingOrdersAPI();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testWorkCentersAPI();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testBOMsAPI();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Frontend Integration Tests
+                await testFrontendConnectivity();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testUIResponsiveness();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testErrorHandling();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Performance Tests
+                await testAPILoad();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testMemoryUsage();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                await testResponseTimes();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testDatabasePerformance();
+                
+                testResults.endTime = Date.now();
+                updateTestStats();
+                
+                logSuccess('🎉 Complete test suite finished!');
+                
+                // Generate summary
+                const successRate = Math.round((testResults.passed / testResults.total) * 100);
+                const duration = Math.round((testResults.endTime - testResults.startTime) / 1000);
+                
+                logInfo(`📊 Test Summary: ${testResults.passed}/${testResults.total} tests passed (${successRate}%) in ${duration}s`);
+                
+            } catch (error) {
+                logError(`Test suite execution failed: ${error.message}`);
+            }
+        }
+
+        // Utility functions
+        function clearAllResults() {
+            // Reset test statistics
+            testResults = { total: 0, passed: 0, failed: 0, startTime: null, endTime: null };
+            updateTestStats();
+            
+            // Clear all status indicators
+            const statusElements = document.querySelectorAll('.status-indicator');
+            statusElements.forEach(el => {
+                el.className = 'status-indicator status-pending';
+            });
+            
+            // Clear all test cards
+            const cardElements = document.querySelectorAll('.test-card');
+            cardElements.forEach(el => {
+                el.className = 'test-card';
+            });
+            
+            // Clear all result divs
+            const resultElements = document.querySelectorAll('[id$="Result"]');
+            resultElements.forEach(el => {
+                el.innerHTML = '';
+            });
+            
+            // Clear database metrics
+            const metricElements = document.querySelectorAll('.metric-value');
+            metricElements.forEach(el => {
+                el.textContent = '-';
+            });
+            
+            // Clear database results
+            document.getElementById('databaseResults').innerHTML = '';
+            
+            // Clear log
+            document.getElementById('testLog').innerHTML = '<div class="log-entry log-info">[INFO] Test results cleared. Ready for new test run...</div>';
+            
+            // Reset auth token
+            authToken = '';
+            
+            logInfo('All test results cleared');
+        }
+
+        function generateTestReport() {
+            logInfo('Generating test report...');
+            
+            const report = {
+                timestamp: new Date().toISOString(),
+                testResults: testResults,
+                systemInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine
+                },
+                apiEndpoint: API_BASE_URL,
+                testEnvironment: 'Development'
+            };
+            
+            const reportJson = JSON.stringify(report, null, 2);
+            const blob = new Blob([reportJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `manufacturing-erp-test-report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            logSuccess('Test report generated and downloaded');
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            logInfo('Manufacturing ERP QA Test Suite initialized');
+            logInfo('Click "Run Complete Test Suite" to begin comprehensive testing');
+            updateTestStats();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS & Authentication Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin-bottom: 30px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; border: 1px solid #e9ecef; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .test-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-pending { background: #ffc107; }
+        input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .credentials { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 CORS & Authentication Integration Test</h1>
+        <p>Testing Manufacturing ERP system authentication from frontend (localhost:5174) to backend (localhost:3000)</p>
+
+        <!-- Server Status -->
+        <div class="section">
+            <h2>🖥️ Server Status</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3><span id="backendStatus" class="status-indicator status-pending"></span>Backend Server</h3>
+                    <p>Port: 3000</p>
+                    <button onclick="testBackendStatus()">Test Backend</button>
+                    <div id="backendResult"></div>
+                </div>
+                <div class="test-card">
+                    <h3><span id="frontendStatus" class="status-indicator status-success"></span>Frontend Client</h3>
+                    <p>Port: 5174 (This page)</p>
+                    <div class="success">✅ Frontend is running</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CORS Test -->
+        <div class="section">
+            <h2>🌐 CORS Configuration Test</h2>
+            <button onclick="testCORS()">Test CORS Headers</button>
+            <div id="corsResult"></div>
+        </div>
+
+        <!-- Authentication Test -->
+        <div class="section">
+            <h2>🔐 Authentication Test</h2>
+            <div class="credentials">
+                <strong>Test Credentials:</strong><br>
+                Email: admin@manufacturing.com<br>
+                Password: admin123
+            </div>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Login Test</h3>
+                    <input type="email" id="loginEmail" value="admin@manufacturing.com" placeholder="Email">
+                    <input type="password" id="loginPassword" value="admin123" placeholder="Password">
+                    <button onclick="testLogin()">🚀 Test Login</button>
+                    <div id="loginResult"></div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Token Validation</h3>
+                    <button onclick="testTokenValidation()">🎫 Validate Token</button>
+                    <div id="tokenResult"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Endpoints Test -->
+        <div class="section">
+            <h2>📡 API Endpoints Test</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Dashboard API</h3>
+                    <button onclick="testDashboard()">Test Dashboard</button>
+                    <div id="dashboardResult"></div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Products API</h3>
+                    <button onclick="testProducts()">Test Products</button>
+                    <div id="productsResult"></div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Work Orders API</h3>
+                    <button onclick="testWorkOrders()">Test Work Orders</button>
+                    <div id="workOrdersResult"></div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Manufacturing Orders API</h3>
+                    <button onclick="testManufacturingOrders()">Test Manufacturing Orders</button>
+                    <div id="manufacturingOrdersResult"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Integration Test -->
+        <div class="section">
+            <h2>🗄️ Database Integration Test</h2>
+            <button onclick="testDatabaseIntegration()">🔍 Test All Database Endpoints</button>
+            <div id="databaseResult"></div>
+        </div>
+
+        <!-- Complete System Test -->
+        <div class="section">
+            <h2>🎯 Complete System Test</h2>
+            <button class="success" onclick="runCompleteTest()">🚀 Run Complete Test Suite</button>
+            <button class="danger" onclick="clearResults()">🧹 Clear Results</button>
+            <div id="completeTestResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api/v1';
+        let authToken = '';
+
+        // Test backend server status
+        async function testBackendStatus() {
+            const resultDiv = document.getElementById('backendResult');
+            const statusIndicator = document.getElementById('backendStatus');
+            
+            try {
+                resultDiv.innerHTML = '<div class="info">🔄 Testing backend connection...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: 'test' })
+                });
+
+                if (response.status === 400) {
+                    // Expected validation error means server is running
+                    statusIndicator.className = 'status-indicator status-success';
+                    resultDiv.innerHTML = '<div class="success">✅ Backend server is running and responding</div>';
+                } else {
+                    throw new Error(`Unexpected response: ${response.status}`);
+                }
+            } catch (error) {
+                statusIndicator.className = 'status-indicator status-error';
+                resultDiv.innerHTML = `<div class="error">❌ Backend server error: ${error.message}</div>`;
+            }
+        }
+
+        // Test CORS configuration
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            
+            try {
+                resultDiv.innerHTML = '<div class="info">🔄 Testing CORS headers...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:5174',
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization'
+                    }
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials')
+                };
+
+                let corsStatus = '✅ CORS properly configured';
+                let corsClass = 'success';
+
+                if (corsHeaders['Access-Control-Allow-Origin'] !== 'http://localhost:5174') {
+                    corsStatus = '❌ CORS origin mismatch';
+                    corsClass = 'error';
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="${corsClass}">${corsStatus}</div>
+                    <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ CORS test failed: ${error.message}</div>`;
+            }
+        }
+
+        // Test login authentication
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                resultDiv.innerHTML = '<div class="info">🔄 Testing login...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:5174'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usernameOrEmail: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.data.accessToken;
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Login successful!<br>
+                            User: ${data.data.user.fullName}<br>
+                            Token: ${authToken.substring(0, 20)}...
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error?.message || 'Login failed');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Login failed: ${error.message}</div>`;
+            }
+        }
+
+        // Test token validation
+        async function testTokenValidation() {
+            const resultDiv = document.getElementById('tokenResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="warning">⚠️ Please login first to get a token</div>';
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<div class="info">🔄 Validating token...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Token is valid!<br>
+                            User: ${data.data.user.fullName}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error?.message || 'Token validation failed');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Token validation failed: ${error.message}</div>`;
+            }
+        }
+
+        // Test API endpoints
+        async function testAPIEndpoint(endpoint, resultDivId, name) {
+            const resultDiv = document.getElementById(resultDivId);
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="warning">⚠️ Please login first</div>';
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = `<div class="info">🔄 Testing ${name}...</div>`;
+                
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const dataKey = Object.keys(data.data)[0];
+                    const items = data.data[dataKey];
+                    const count = Array.isArray(items) ? items.length : 'N/A';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${name} API working!<br>
+                            Records: ${count}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error?.message || `${name} API failed`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${name} failed: ${error.message}</div>`;
+            }
+        }
+
+        // Individual API tests
+        function testDashboard() { testAPIEndpoint('/dashboard', 'dashboardResult', 'Dashboard'); }
+        function testProducts() { testAPIEndpoint('/products', 'productsResult', 'Products'); }
+        function testWorkOrders() { testAPIEndpoint('/work-orders', 'workOrdersResult', 'Work Orders'); }
+        function testManufacturingOrders() { testAPIEndpoint('/manufacturing-orders', 'manufacturingOrdersResult', 'Manufacturing Orders'); }
+
+        // Test database integration
+        async function testDatabaseIntegration() {
+            const resultDiv = document.getElementById('databaseResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="warning">⚠️ Please login first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">🔄 Testing database integration...</div>';
+            
+            const endpoints = [
+                { path: '/products', name: 'Products' },
+                { path: '/work-centers', name: 'Work Centers' },
+                { path: '/work-orders', name: 'Work Orders' },
+                { path: '/manufacturing-orders', name: 'Manufacturing Orders' },
+                { path: '/boms', name: 'BOMs' },
+                { path: '/dashboard', name: 'Dashboard' }
+            ];
+            
+            let results = [];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}${endpoint.path}`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` },
+                        credentials: 'include'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        const dataKey = Object.keys(data.data)[0];
+                        const items = data.data[dataKey];
+                        const count = Array.isArray(items) ? items.length : 'Object';
+                        results.push(`✅ ${endpoint.name}: ${count} records`);
+                    } else {
+                        results.push(`❌ ${endpoint.name}: ${data.error?.message || 'Failed'}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${endpoint.name}: ${error.message}`);
+                }
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="success">
+                    <h3>Database Integration Results:</h3>
+                    ${results.map(result => `<div>${result}</div>`).join('')}
+                </div>
+            `;
+        }
+
+        // Run complete test suite
+        async function runCompleteTest() {
+            const resultDiv = document.getElementById('completeTestResult');
+            resultDiv.innerHTML = '<div class="info">🔄 Running complete test suite...</div>';
+            
+            // Run all tests in sequence
+            await testBackendStatus();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testCORS();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testLogin();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testTokenValidation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDatabaseIntegration();
+            
+            resultDiv.innerHTML = '<div class="success">✅ Complete test suite finished! Check individual sections for results.</div>';
+        }
+
+        // Clear all results
+        function clearResults() {
+            const resultDivs = [
+                'backendResult', 'corsResult', 'loginResult', 'tokenResult',
+                'dashboardResult', 'productsResult', 'workOrdersResult',
+                'manufacturingOrdersResult', 'databaseResult', 'completeTestResult'
+            ];
+            
+            resultDivs.forEach(id => {
+                const div = document.getElementById(id);
+                if (div) div.innerHTML = '';
+            });
+            
+            authToken = '';
+        }
+
+        // Auto-run backend status test on page load
+        window.onload = function() {
+            testBackendStatus();
+        };
+    </script>
+</body>
+</html>

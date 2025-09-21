@@ -64,4 +64,9 @@ export interface IJWTService {
    * Get token expiration time in seconds
    */
   getTokenExpirationTime(token: string): number | null;
+
+  /**
+   * Get access token expiration time in seconds
+   */
+  getAccessTokenExpirationTime(): number;
 }

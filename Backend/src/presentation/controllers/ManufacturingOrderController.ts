@@ -85,7 +85,7 @@ export class ManufacturingOrderController {
           {
             model: BOMModel,
             as: 'bom',
-            attributes: ['id', 'bom_number', 'version', 'status'],
+            attributes: ['id', 'name', 'version', 'is_active'],
           },
         ],
         limit: Number(limit),
@@ -143,7 +143,7 @@ export class ManufacturingOrderController {
           {
             model: BOMModel,
             as: 'bom',
-            attributes: ['id', 'bom_number', 'version', 'status', 'components'],
+            attributes: ['id', 'name', 'version', 'is_active', 'description'],
           },
         ],
       });
@@ -168,12 +168,28 @@ export class ManufacturingOrderController {
       const response = this.formatManufacturingOrderResponse(manufacturingOrder);
       response.workOrders = workOrders.map(wo => ({
         id: wo.id,
-        woNumber: wo.wo_number,
+        reference: wo.wo_number, // Map wo_number to reference for frontend compatibility
+        woNumber: wo.wo_number, // Keep original for backward compatibility
+        manufacturingOrderId: wo.manufacturing_order_id,
+        manufacturingOrderRef: manufacturingOrder.mo_number,
         operation: wo.operation,
+        operationType: wo.operation_type || wo.operation, // Map operation_type
+        workCenterId: wo.work_center_id,
+        workCenterName: '', // TODO: Get from work center association
+        workCenter: '', // Keep for backward compatibility
         status: wo.status,
         sequence: wo.sequence,
         estimatedDuration: wo.estimated_duration,
         actualDuration: wo.actual_duration,
+        startDate: wo.start_time,
+        endDate: wo.end_time,
+        assigneeId: wo.assigned_to,
+        assigneeName: '', // TODO: Get from user association
+        assignee: '', // Keep for backward compatibility
+        progress: 0, // TODO: Calculate progress
+        notes: wo.instructions || '',
+        createdAt: wo.created_at,
+        updatedAt: wo.updated_at,
       }));
 
       res.status(200).json({
@@ -362,19 +378,34 @@ export class ManufacturingOrderController {
   private formatManufacturingOrderResponse(mo: ManufacturingOrderModel): any {
     return {
       id: mo.id,
-      moNumber: mo.mo_number,
+      reference: mo.mo_number, // Map mo_number to reference for frontend compatibility
+      moNumber: mo.mo_number, // Keep original for backward compatibility
       productId: mo.product_id,
+      productName: mo.product?.name || '', // Add product name from association
       bomId: mo.bom_id,
+      bomName: mo.bom?.name || '', // Add BOM name from association
       quantity: mo.quantity,
       quantityUnit: mo.quantity_unit,
       status: mo.status,
       priority: mo.priority,
-      plannedStartDate: mo.planned_start_date,
-      plannedEndDate: mo.planned_end_date,
+      startDate: mo.planned_start_date, // Map planned_start_date to startDate
+      dueDate: mo.planned_end_date, // Map planned_end_date to dueDate
+      plannedStartDate: mo.planned_start_date, // Keep original for backward compatibility
+      plannedEndDate: mo.planned_end_date, // Keep original for backward compatibility
       actualStartDate: mo.actual_start_date,
       actualEndDate: mo.actual_end_date,
       createdBy: mo.created_by,
       assignedTo: mo.assigned_to,
+      assigneeId: mo.assigned_to, // Map assigned_to to assigneeId for frontend compatibility
+      assigneeName: '', // TODO: Get from user association
+      assignee: '', // Keep for backward compatibility
+      workCenterId: '', // TODO: Get from work center association
+      workCenterName: '', // TODO: Get from work center association
+      workOrders: [], // Will be populated separately
+      totalDuration: 0, // TODO: Calculate from work orders
+      completedQuantity: 0, // TODO: Calculate from work order progress
+      scrapQuantity: 0, // TODO: Get from quality records
+      progress: 0, // TODO: Calculate based on work order completion
       notes: mo.notes,
       metadata: mo.metadata,
       product: mo.product,

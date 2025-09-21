@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+        button:hover { background: #0056b3; }
+        .clear-btn { background: #dc3545; }
+        .clear-btn:hover { background: #c82333; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .storage-info { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Authentication Debug Tool</h1>
+        
+        <!-- Storage Info -->
+        <div class="storage-info">
+            <h3>📦 Current Storage State</h3>
+            <div id="storageInfo"></div>
+            <button class="clear-btn" onclick="clearStorage()">Clear All Storage</button>
+        </div>
+
+        <!-- Login Test -->
+        <div class="section">
+            <h2>🔐 Login Test</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" value="admin@manufacturing.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" value="admin123" required>
+                </div>
+                <button type="submit">🚀 Test Login</button>
+                <button type="button" onclick="testWithoutAuth()">🧪 Test Without Auth Header</button>
+            </form>
+            <div id="loginResult"></div>
+        </div>
+
+        <!-- Token Test -->
+        <div class="section">
+            <h2>🎫 Token Test</h2>
+            <button onclick="testProtectedEndpoint()">Test Protected Endpoint</button>
+            <button onclick="testTokenValidation()">Test Token Validation</button>
+            <div id="tokenResult"></div>
+        </div>
+
+        <!-- Network Debug -->
+        <div class="section">
+            <h2>🌐 Network Debug</h2>
+            <button onclick="inspectNetworkRequests()">Inspect Network Requests</button>
+            <div id="networkResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api/v1';
+
+        // Update storage info
+        function updateStorageInfo() {
+            const info = document.getElementById('storageInfo');
+            const authToken = localStorage.getItem('auth_token');
+            const authUser = localStorage.getItem('auth_user');
+            const cookies = document.cookie;
+            
+            info.innerHTML = `
+                <p><strong>Auth Token:</strong> ${authToken ? authToken.substring(0, 50) + '...' : 'None'}</p>
+                <p><strong>Auth User:</strong> ${authUser ? 'Present' : 'None'}</p>
+                <p><strong>Cookies:</strong> ${cookies || 'None'}</p>
+            `;
+        }
+
+        // Clear all storage
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            updateStorageInfo();
+            document.getElementById('loginResult').innerHTML = '<div class="info">✅ All storage cleared!</div>';
+        }
+
+        // Test login with manual fetch (no interceptors)
+        async function testWithoutAuth() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                resultDiv.innerHTML = '<div class="info">🧪 Testing login without auth header...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Explicitly NOT adding Authorization header
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usernameOrEmail: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Login Successful (Without Auth Header)!</h3>
+                            <p><strong>User:</strong> ${data.data.user.fullName}</p>
+                            <p><strong>Email:</strong> ${data.data.user.email}</p>
+                            <p><strong>Token:</strong> ${data.data.accessToken.substring(0, 50)}...</p>
+                            <h4>Full Response:</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    // Store token
+                    localStorage.setItem('auth_token', data.data.accessToken);
+                    localStorage.setItem('auth_user', JSON.stringify(data.data.user));
+                    updateStorageInfo();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Login Failed</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error?.message || 'Unknown error'}</p>
+                            <h4>Full Response:</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Test login with potential auth header
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                resultDiv.innerHTML = '<div class="info">🔐 Testing login (may include auth header)...</div>';
+                
+                // This will use any existing auth interceptors
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Check if there's an existing token that might be added
+                const existingToken = localStorage.getItem('auth_token');
+                if (existingToken) {
+                    resultDiv.innerHTML += '<div class="info">⚠️ Warning: Existing token found in storage!</div>';
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usernameOrEmail: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Login Successful!</h3>
+                            <p><strong>User:</strong> ${data.data.user.fullName}</p>
+                            <p><strong>Email:</strong> ${data.data.user.email}</p>
+                            <p><strong>Token:</strong> ${data.data.accessToken.substring(0, 50)}...</p>
+                        </div>
+                    `;
+                    
+                    localStorage.setItem('auth_token', data.data.accessToken);
+                    localStorage.setItem('auth_user', JSON.stringify(data.data.user));
+                    updateStorageInfo();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Login Failed</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error?.message || 'Unknown error'}</p>
+                            <h4>Response:</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Test protected endpoint
+        async function testProtectedEndpoint() {
+            const resultDiv = document.getElementById('tokenResult');
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="error">❌ No token found. Please login first.</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/products`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Protected Endpoint Success!</h3>
+                            <p><strong>Products Found:</strong> ${data.data.products.length}</p>
+                            <p><strong>First Product:</strong> ${data.data.products[0]?.name || 'N/A'}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Protected Endpoint Failed</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error?.message || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Test token validation
+        async function testTokenValidation() {
+            const resultDiv = document.getElementById('tokenResult');
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="error">❌ No token found. Please login first.</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Token Valid!</h3>
+                            <p><strong>User:</strong> ${data.data.user.fullName}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Token Invalid</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error?.message || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize
+        updateStorageInfo();
+        setInterval(updateStorageInfo, 5000); // Update every 5 seconds
+    </script>
+</body>
+</html>

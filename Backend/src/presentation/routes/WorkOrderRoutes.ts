@@ -154,4 +154,42 @@ router.post(
   workOrderController.addTimeEntry.bind(workOrderController)
 );
 
+/**
+ * @route   PATCH /api/v1/work-orders/:id/start
+ * @desc    Start a work order
+ * @access  Private
+ * @param   {string} id - Work order UUID
+ */
+router.patch(
+  '/:id/start',
+  WorkOrderValidator.getWorkOrderValidation(),
+  workOrderController.startWorkOrder.bind(workOrderController)
+);
+
+/**
+ * @route   PATCH /api/v1/work-orders/:id/pause
+ * @desc    Pause a work order
+ * @access  Private
+ * @param   {string} id - Work order UUID
+ * @body    {string} [comments] - Optional comments about the pause
+ */
+router.patch(
+  '/:id/pause',
+  WorkOrderValidator.getWorkOrderValidation(),
+  workOrderController.pauseWorkOrder.bind(workOrderController)
+);
+
+/**
+ * @route   PATCH /api/v1/work-orders/:id/complete
+ * @desc    Complete a work order
+ * @access  Private
+ * @param   {string} id - Work order UUID
+ * @body    {string} [comments] - Optional comments about the completion
+ */
+router.patch(
+  '/:id/complete',
+  WorkOrderValidator.getWorkOrderValidation(),
+  workOrderController.completeWorkOrder.bind(workOrderController)
+);
+
 export default router;

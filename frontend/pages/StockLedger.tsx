@@ -10,23 +10,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProductCard } from "@/components/stock/ProductCard"
 import { CreateProductModal } from "@/components/stock/CreateProductModal"
 import { StockMovementsList } from "@/components/stock/StockMovementsList"
-import { Plus, Search, Filter, Loader2, Package, AlertTriangle, DollarSign } from "lucide-react"
+import { StockMovementModal } from "@/components/stock/StockMovementModal"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { Plus, Search, Filter, Loader2, Package, AlertTriangle, DollarSign, TrendingUp } from "lucide-react"
 import type { Product } from "@/types"
 
 export const StockLedger: React.FC = () => {
   const { products, loading: productsLoading, createProduct, updateProduct, adjustStock } = useProducts()
-  const { movements, loading: movementsLoading } = useStockMovements()
+  const { movements, loading: movementsLoading, createMovement, updateMovement, deleteMovement, refetch: refetchMovements } = useStockMovements()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<Product["category"] | "all">("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false)
+  const [editingMovement, setEditingMovement] = useState<any>(null)
 
   // Filter products based on search and category
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (product.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description || "").toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
     return matchesSearch && matchesCategory
   })
@@ -34,8 +38,8 @@ export const StockLedger: React.FC = () => {
   // Calculate KPIs
   const kpis = {
     totalProducts: products.length,
-    lowStockItems: products.filter((p) => p.currentStock <= p.minStock).length,
-    totalValue: products.reduce((sum, p) => sum + p.currentStock * p.unitCost, 0),
+    lowStockItems: products.filter((p) => (p.currentStock || 0) <= (p.minStock || 0)).length,
+    totalValue: products.reduce((sum, p) => sum + (p.currentStock || 0) * (p.unitCost || 0), 0),
     rawMaterials: products.filter((p) => p.category === "raw-material").length,
     finishedGoods: products.filter((p) => p.category === "finished-good").length,
   }
@@ -60,7 +64,40 @@ export const StockLedger: React.FC = () => {
   }
 
   const handleStockAdjust = async (id: string, quantity: number, type: "in" | "out") => {
-    await adjustStock(id, quantity, type)
+    try {
+      await adjustStock(id, quantity, type)
+      refetchMovements() // Refresh movements after stock adjustment
+    } catch (error) {
+      // Error is already handled in useProducts hook and will be displayed in the UI
+      console.error('Stock adjustment failed:', error)
+    }
+  }
+
+  const handleMovementSubmit = async (movementData: any) => {
+    if (editingMovement) {
+      await updateMovement(editingMovement.id, movementData)
+      setEditingMovement(null)
+    } else {
+      await createMovement(movementData)
+    }
+    refetchMovements()
+  }
+
+  const handleCloseMovementModal = () => {
+    setIsMovementModalOpen(false)
+    setEditingMovement(null)
+  }
+
+  const handleEditMovement = (movement: any) => {
+    setEditingMovement(movement)
+    setIsMovementModalOpen(true)
+  }
+
+  const handleDeleteMovement = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this stock movement?")) {
+      await deleteMovement(id)
+      refetchMovements()
+    }
   }
 
   if (productsLoading || movementsLoading) {
@@ -72,17 +109,24 @@ export const StockLedger: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundary>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Stock Ledger</h1>
           <p className="text-muted-foreground">Track inventory levels, movements, and manage product master data</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsMovementModalOpen(true)} variant="outline">
+            <TrendingUp className="mr-2 h-4 w-4" />
+            Record Movement
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Product
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -193,7 +237,11 @@ export const StockLedger: React.FC = () => {
 
         {/* Stock Movements Section */}
         <div className="space-y-6">
-          <StockMovementsList movements={movements.slice(0, 10)} />
+          <StockMovementsList
+            movements={movements.slice(0, 10)}
+            onEdit={handleEditMovement}
+            onDelete={handleDeleteMovement}
+          />
         </div>
       </div>
 
@@ -204,6 +252,15 @@ export const StockLedger: React.FC = () => {
         onSubmit={handleSubmit}
         editingProduct={editingProduct}
       />
-    </div>
+
+      {/* Stock Movement Modal */}
+      <StockMovementModal
+        isOpen={isMovementModalOpen}
+        onClose={handleCloseMovementModal}
+        onSubmit={handleMovementSubmit}
+        editingMovement={editingMovement}
+      />
+      </div>
+    </ErrorBoundary>
   )
 }

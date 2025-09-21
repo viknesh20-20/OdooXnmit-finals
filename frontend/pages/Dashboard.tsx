@@ -1,7 +1,6 @@
 import type React from "react"
 import { Routes, Route } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
-import { ProtectedRoute, AdminRoute } from "@/components/auth/ProtectedRoute"
 import { DashboardOverview } from "@/pages/DashboardOverview"
 import { ManufacturingOrders } from "@/pages/ManufacturingOrders"
 import { WorkOrders } from "@/pages/WorkOrders"

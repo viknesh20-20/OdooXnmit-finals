@@ -134,14 +134,14 @@ export const initManufacturingOrderModel = (sequelize: Sequelize): typeof Manufa
         },
       },
       status: {
-        type: DataTypes.ENUM('draft', 'confirmed', 'in_progress', 'completed', 'cancelled'),
+        type: DataTypes.ENUM('draft', 'planned', 'released', 'in_progress', 'paused', 'completed', 'cancelled'),
         allowNull: false,
         defaultValue: 'draft',
       },
       priority: {
-        type: DataTypes.ENUM('low', 'normal', 'high', 'urgent'),
+        type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
         allowNull: false,
-        defaultValue: 'normal',
+        defaultValue: 'medium',
       },
       planned_start_date: {
         type: DataTypes.DATE,

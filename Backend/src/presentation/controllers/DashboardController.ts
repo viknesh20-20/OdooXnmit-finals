@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
-import { inject, injectable } from 'inversify';
-import { ILogger } from '@application/interfaces/IPasswordService';
-import { IUserRepository, IManufacturingOrderRepository, IProductRepository } from '@domain/repositories/IUserRepository';
 import { AuthenticatedRequest } from '@presentation/middleware/AuthMiddleware';
+import { UserModel } from '@infrastructure/database/models/UserModel';
+import { ManufacturingOrderModel } from '@infrastructure/database/models/ManufacturingOrderModel';
+import { ProductModel } from '@infrastructure/database/models/ProductModel';
+import { WorkOrderModel } from '@infrastructure/database/models/WorkOrderModel';
+import { WorkCenterModel } from '@infrastructure/database/models/WorkCenterModel';
 
 export interface DashboardData {
   user: {
@@ -79,34 +81,41 @@ export interface DashboardData {
   }>;
 }
 
-@injectable()
 export class DashboardController {
-  constructor(
-    @inject('ILogger') private logger: ILogger,
-    @inject('IUserRepository') private userRepository: IUserRepository,
-    @inject('IManufacturingOrderRepository') private manufacturingOrderRepository: IManufacturingOrderRepository,
-    @inject('IProductRepository') private productRepository: IProductRepository,
-  ) {}
+  constructor() {}
 
   async getDashboardData(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.userId;
-      this.logger.debug('Fetching dashboard data', { userId });
+      console.log('Fetching dashboard data for user:', userId);
 
       // Fetch available data in parallel for better performance
       const [
         user,
         manufacturingOrders,
-        products
+        products,
+        workOrders,
+        workCenters
       ] = await Promise.all([
-        this.userRepository.findById(userId),
-        this.manufacturingOrderRepository.findAll({ limit: 100 }),
-        this.productRepository.findActiveProducts({ limit: 100 })
+        UserModel.findByPk(userId, {
+          include: [{ association: 'role' }]
+        }),
+        ManufacturingOrderModel.findAll({
+          limit: 100
+        }),
+        ProductModel.findAll({
+          where: { is_active: true },
+          limit: 100
+        }),
+        WorkOrderModel.findAll({
+          limit: 100
+        }),
+        WorkCenterModel.findAll({
+          limit: 50
+        })
       ]);
 
-      // Mock data for missing repositories (to be replaced with real implementations)
-      const workOrders: any[] = [];
-      const workCenters: any[] = [];
+      // Mock data for stock movements (to be implemented when inventory system is added)
       const stockMovements: any[] = [];
 
       if (!user) {
@@ -128,7 +137,7 @@ export class DashboardController {
         inProgress: manufacturingOrders.filter(mo => mo.status === 'in-progress').length,
         planned: manufacturingOrders.filter(mo => mo.status === 'planned').length,
         delayed: manufacturingOrders.filter(mo => {
-          const dueDate = new Date(mo.dueDate);
+          const dueDate = new Date(mo.planned_end_date || mo.created_at);
           return mo.status !== 'completed' && dueDate < now;
         }).length
       };
@@ -153,33 +162,33 @@ export class DashboardController {
 
       // Calculate product statistics
       const productStats = {
-        total: products.data?.length || 0,
-        lowStock: products.data?.filter(p => (p.currentStock || 0) <= (p.minStockLevel || 0)).length || 0,
-        outOfStock: products.data?.filter(p => (p.currentStock || 0) === 0).length || 0
+        total: products.length || 0,
+        lowStock: products.filter(p => (p.reorder_point || 0) <= (p.min_stock_level || 0)).length || 0,
+        outOfStock: products.filter(p => (p.reorder_point || 0) === 0).length || 0
       };
 
       // Prepare recent activity data
       const recentMOs = manufacturingOrders
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 5)
         .map(mo => ({
           id: mo.id,
-          productName: mo.productName || 'Unknown Product',
+          productName: mo.product?.name || 'Unknown Product',
           quantity: mo.quantity,
           status: mo.status,
-          dueDate: mo.dueDate,
-          createdAt: mo.createdAt
+          dueDate: (mo.planned_end_date || mo.created_at)?.toISOString() || new Date().toISOString(),
+          createdAt: mo.created_at?.toISOString() || new Date().toISOString()
         }));
 
       const recentWOs = workOrders
-        .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
+        .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
         .slice(0, 5)
         .map(wo => ({
           id: wo.id,
           operation: wo.operation || 'Unknown Operation',
-          workCenter: wo.workCenterName || 'Unknown Work Center',
+          workCenter: wo.workCenter?.name || 'Unknown Work Center',
           status: wo.status,
-          assignee: wo.assignedTo
+          assignee: wo.assigned_to
         }));
 
       // Prepare stock movements data
@@ -227,9 +236,9 @@ export class DashboardController {
           id: user.id,
           username: user.username,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          fullName: user.fullName,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          fullName: `${user.first_name} ${user.last_name}`,
           role: user.role ? {
             id: user.role.id,
             name: user.role.name,
@@ -252,7 +261,7 @@ export class DashboardController {
         alerts
       };
 
-      this.logger.info('Dashboard data fetched successfully', { 
+      console.log('Dashboard data fetched successfully', {
         userId,
         dataPoints: {
           manufacturingOrders: moStats.total,
@@ -269,9 +278,9 @@ export class DashboardController {
       });
 
     } catch (error) {
-      this.logger.error('Error fetching dashboard data', { 
+      console.error('Error fetching dashboard data', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: req.user?.userId 
+        userId: req.user?.userId
       });
 
       res.status(500).json({

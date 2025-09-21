@@ -5,9 +5,14 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X, Loader2, Plus, Trash2 } from "lucide-react"
 import type { BOM, BOMComponent, BOMOperation } from "@/types"
 import { generateReference, generateId } from "@/lib/idGenerator"
+import { useWorkCenters } from "@/hooks/useWorkCenters"
+import { useProducts } from "@/hooks/useProducts"
+import { useBOMOperations } from "@/hooks/useBOMOperations"
+import { FormError, FieldError } from "@/components/ui/form-error"
 
 interface CreateBOMModalProps {
   isOpen: boolean
@@ -16,7 +21,24 @@ interface CreateBOMModalProps {
   editingBOM?: BOM | null
 }
 
+// Predefined operation types based on seeded data
+const OPERATION_TYPES = [
+  { value: 'Material Preparation', label: 'Material Preparation', type: 'preparation' },
+  { value: 'Cutting', label: 'Cutting', type: 'machining' },
+  { value: 'Assembly', label: 'Assembly', type: 'assembly' },
+  { value: 'Quality Control', label: 'Quality Control', type: 'inspection' },
+  { value: 'Packaging', label: 'Packaging', type: 'finishing' },
+  { value: 'Welding', label: 'Welding', type: 'machining' },
+  { value: 'Drilling', label: 'Drilling', type: 'machining' },
+  { value: 'Painting', label: 'Painting', type: 'finishing' },
+  { value: 'Testing', label: 'Testing', type: 'inspection' },
+  { value: 'Polishing', label: 'Polishing', type: 'finishing' }
+]
+
 export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose, onSubmit, editingBOM }) => {
+  const { workCenters, loading: workCentersLoading, error: workCentersError } = useWorkCenters()
+  const { products } = useProducts()
+
   const [formData, setFormData] = useState({
     productId: editingBOM?.productId || "",
     productName: editingBOM?.productName || "",
@@ -24,18 +46,68 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
     isActive: editingBOM?.isActive ?? true,
   })
   const [components, setComponents] = useState<Omit<BOMComponent, "id">[]>(
-    editingBOM?.components.map(({ id, ...comp }) => comp) || [
+    editingBOM?.components?.map(({ id, ...comp }) => comp) || [
       { productId: "", productName: "", quantity: 1, unit: "pieces" },
     ],
   )
   const [operations, setOperations] = useState<Omit<BOMOperation, "id">[]>(
-    editingBOM?.operations.map(({ id, ...op }) => op) || [{ operation: "", workCenter: "", duration: 60, sequence: 1 }],
+    editingBOM?.operations?.map(({ id, ...op }) => op) || [{ operation: "", workCenter: "", duration: 60, sequence: 1 }],
   )
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.productId.trim()) {
+      newErrors.productId = 'Product ID is required'
+    }
+    if (!formData.productName.trim()) {
+      newErrors.productName = 'Product name is required'
+    }
+    if (!formData.version.trim()) {
+      newErrors.version = 'Version is required'
+    }
+
+    // Validate components
+    components.forEach((comp, index) => {
+      if (!comp.productId.trim()) {
+        newErrors[`component_${index}_productId`] = `Component ${index + 1} product ID is required`
+      }
+      if (!comp.productName.trim()) {
+        newErrors[`component_${index}_productName`] = `Component ${index + 1} product name is required`
+      }
+      if (comp.quantity <= 0) {
+        newErrors[`component_${index}_quantity`] = `Component ${index + 1} quantity must be greater than 0`
+      }
+    })
+
+    // Validate operations
+    operations.forEach((op, index) => {
+      if (!op.operation.trim()) {
+        newErrors[`operation_${index}_operation`] = `Operation ${index + 1} name is required`
+      }
+      if (!op.workCenter?.trim()) {
+        newErrors[`operation_${index}_workCenter`] = `Operation ${index + 1} work center is required`
+      }
+      if (op.duration <= 0) {
+        newErrors[`operation_${index}_duration`] = `Operation ${index + 1} duration must be greater than 0`
+      }
+    })
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
+    setErrors({})
 
     try {
       const bomData: Omit<BOM, "id"> = {
@@ -53,6 +125,9 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
 
       await onSubmit(bomData)
 
+      // Clear any previous errors on successful submission
+      setErrors({})
+
       // Reset form
       setFormData({
         productId: "",
@@ -63,6 +138,18 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
       setComponents([{ productId: "", productName: "", quantity: 1, unit: "pieces" }])
       setOperations([{ operation: "", workCenter: "", duration: 60, sequence: 1 }])
       onClose()
+    } catch (error) {
+      console.error('Error creating BOM:', error)
+
+      // Extract validation errors from API response
+      let errorMessage = 'Failed to create BOM'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      // Set a general error that can be displayed to the user
+      setErrors({ submit: errorMessage })
+      setErrors({ submit: error instanceof Error ? error.message : 'Failed to create BOM' })
     } finally {
       setLoading(false)
     }
@@ -74,6 +161,16 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
       ...prev,
       [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }))
+
+    // Clear field-specific errors and submit errors when user starts typing
+    if (errors[name] || errors.submit) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        delete newErrors.submit
+        return newErrors
+      })
+    }
   }
 
   const addComponent = () => {
@@ -119,40 +216,81 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
           </div>
         </CardHeader>
         <CardContent>
+          {errors.submit && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{errors.submit}</p>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Form Error Summary */}
+            {Object.keys(errors).filter(key => key !== 'submit').length > 0 && (
+              <FormError
+                error={Object.values(errors).filter((_, index) => Object.keys(errors)[index] !== 'submit')}
+                variant="destructive"
+                className="mb-4"
+              />
+            )}
+
+            {/* Work Centers Loading Error */}
+            {workCentersError && (
+              <FormError
+                error={`Failed to load work centers: ${workCentersError}`}
+                variant="destructive"
+                className="mb-4"
+              />
+            )}
+
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label htmlFor="productId" className="text-sm font-medium">
-                  Product ID
+                  Product *
                 </label>
-                <Input
-                  id="productId"
-                  name="productId"
+                <Select
                   value={formData.productId}
-                  onChange={handleChange}
-                  placeholder="P-005"
-                  required
-                />
+                  onValueChange={(value) => {
+                    const selectedProduct = products.find(p => p.id === value)
+                    setFormData(prev => ({
+                      ...prev,
+                      productId: value,
+                      productName: selectedProduct?.name || ""
+                    }))
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} ({product.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors.productId} />
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="productName" className="text-sm font-medium">
-                  Product Name
+                  Product Name *
                 </label>
                 <Input
                   id="productName"
                   name="productName"
                   value={formData.productName}
                   onChange={handleChange}
-                  placeholder="Wooden Table"
+                  placeholder="Product name"
                   required
+                  disabled
+                  className="bg-muted"
                 />
+                <FieldError error={errors.productName} />
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="version" className="text-sm font-medium">
-                  Version
+                  Version *
                 </label>
                 <Input
                   id="version"
@@ -162,6 +300,7 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
                   placeholder="v1.0"
                   required
                 />
+                <FieldError error={errors.version} />
               </div>
             </div>
 
@@ -195,17 +334,34 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
                     key={index}
                     className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-border rounded-lg"
                   >
-                    <Input
-                      placeholder="Product ID"
+                    <Select
                       value={component.productId}
-                      onChange={(e) => updateComponent(index, "productId", e.target.value)}
-                      required
-                    />
+                      onValueChange={(value) => {
+                        const selectedProduct = products.find(p => p.id === value)
+                        updateComponent(index, "productId", value)
+                        if (selectedProduct) {
+                          updateComponent(index, "productName", selectedProduct.name)
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} ({product.id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Input
                       placeholder="Product Name"
                       value={component.productName}
                       onChange={(e) => updateComponent(index, "productName", e.target.value)}
                       required
+                      disabled
+                      className="bg-muted"
                     />
                     <Input
                       type="number"
@@ -252,18 +408,56 @@ export const CreateBOMModal: React.FC<CreateBOMModalProps> = ({ isOpen, onClose,
                     key={index}
                     className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-border rounded-lg"
                   >
-                    <Input
-                      placeholder="Operation"
-                      value={operation.operation}
-                      onChange={(e) => updateOperation(index, "operation", e.target.value)}
-                      required
-                    />
-                    <Input
-                      placeholder="Work Center"
-                      value={operation.workCenter}
-                      onChange={(e) => updateOperation(index, "workCenter", e.target.value)}
-                      required
-                    />
+                    <div className="space-y-1">
+                      <Select
+                        value={operation.operation}
+                        onValueChange={(value) => updateOperation(index, "operation", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select operation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {OPERATION_TYPES.map((opType) => (
+                            <SelectItem key={opType.value} value={opType.value}>
+                              {opType.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FieldError error={errors[`operation_${index}_operation`]} />
+                    </div>
+                    <div className="space-y-1">
+                      <Select
+                        value={operation.workCenter}
+                        onValueChange={(value) => updateOperation(index, "workCenter", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select work center" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {workCentersLoading ? (
+                            <SelectItem value="" disabled>
+                              Loading work centers...
+                            </SelectItem>
+                          ) : workCentersError ? (
+                            <SelectItem value="" disabled>
+                              Error loading work centers
+                            </SelectItem>
+                          ) : workCenters.length === 0 ? (
+                            <SelectItem value="" disabled>
+                              No work centers available
+                            </SelectItem>
+                          ) : (
+                            workCenters.map((workCenter) => (
+                              <SelectItem key={workCenter.id} value={workCenter.id}>
+                                {workCenter.code} - {workCenter.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FieldError error={errors[`operation_${index}_workCenter`]} />
+                    </div>
                     <Input
                       type="number"
                       placeholder="Duration (min)"

@@ -87,8 +87,8 @@ class ProductService {
     
     const response: PaginatedResponse<Product> = await apiClient.get(url);
     return {
-      products: (response.data as any).products || [],
-      pagination: response.data.pagination
+      products: response.data?.products || [],
+      pagination: response.data?.pagination
     };
   }
 

@@ -105,9 +105,15 @@ class ApiClient {
     // Request interceptor to add auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        const token = TokenManager.getAccessToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        // Don't add auth token to login, register, or forgot password endpoints
+        const publicEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
+        const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+
+        if (!isPublicEndpoint) {
+          const token = TokenManager.getAccessToken();
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
         return config;
       },
@@ -184,6 +190,31 @@ class ApiClient {
     if (error.response) {
       // Server responded with error status
       const responseData = error.response.data as any;
+
+      // Handle validation errors with detailed messages
+      if (error.response.status === 400 && responseData?.error?.details) {
+        const details = responseData.error.details;
+        let message = responseData?.error?.message || 'Validation failed';
+
+        // If details is an array of validation errors, format them nicely
+        if (Array.isArray(details)) {
+          const validationMessages = details.map((detail: any) => {
+            if (typeof detail === 'string') return detail;
+            if (detail.msg) return detail.msg;
+            if (detail.message) return detail.message;
+            return 'Invalid input';
+          });
+          message = validationMessages.join('. ');
+        }
+
+        return new ApiError(
+          message,
+          responseData?.error?.code || 'VALIDATION_ERROR',
+          error.response.status,
+          details
+        );
+      }
+
       return new ApiError(
         responseData?.error?.message || 'An error occurred',
         responseData?.error?.code || 'UNKNOWN_ERROR',

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import type { Product } from "@/types"
 import { productService, type Product as ApiProduct, type CreateProductRequest, type UpdateProductRequest } from "@/lib/services/productService"
-import { ApiError } from "@/lib/api"
+import { ApiError, apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Helper function to map API product to frontend product
 const mapApiProductToFrontend = (apiProduct: ApiProduct): Product => {
@@ -13,9 +14,9 @@ const mapApiProductToFrontend = (apiProduct: ApiProduct): Product => {
     code: apiProduct.sku,
     description: apiProduct.description || "",
     unit: "pieces", // Default unit, could be enhanced with UOM lookup
-    currentStock: 0, // This would come from inventory/stock movements
-    availableStock: 0,
-    reservedStock: 0,
+    currentStock: 0, // TODO: Get from inventory/stock movements API
+    availableStock: 0, // TODO: Calculate from stock movements
+    reservedStock: 0, // TODO: Calculate from manufacturing orders
     minStock: apiProduct.minStockLevel,
     maxStock: apiProduct.maxStockLevel,
     reorderPoint: apiProduct.reorderPoint,
@@ -85,6 +86,7 @@ const mapCategoryToApiType = (category: Product['category']): 'raw_material' | '
 }
 
 export const useProducts = () => {
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -107,8 +109,15 @@ export const useProducts = () => {
   }, [])
 
   useEffect(() => {
-    fetchProducts()
-  }, [fetchProducts])
+    // Only fetch products if user is authenticated and auth is not loading
+    if (isAuthenticated && !authLoading) {
+      fetchProducts()
+    } else if (!authLoading && !isAuthenticated) {
+      // User is not authenticated, clear data
+      setProducts([])
+      setLoading(false)
+    }
+  }, [isAuthenticated, authLoading, fetchProducts])
 
   const createProduct = async (productData: Omit<Product, "id">) => {
     try {
@@ -153,19 +162,42 @@ export const useProducts = () => {
   }
 
   const adjustStock = async (id: string, quantity: number, type: "in" | "out") => {
-    // Note: This would typically create a stock movement record
-    // For now, we'll just update the local state as a placeholder
-    // In a real implementation, this would call a stock movement API
-    setProducts((prev) =>
-      prev.map((product) =>
-        product.id === id
-          ? {
-              ...product,
-              currentStock: type === "in" ? product.currentStock + quantity : product.currentStock - quantity,
-            }
-          : product,
-      ),
-    )
+    try {
+      // Create a stock movement record via API
+      const movementData = {
+        product_id: id,
+        quantity: quantity,
+        type: type, // Use 'in' or 'out' as backend calculates balance based on this
+        unit: "pieces", // Default unit - could be made configurable
+        reference: `ADJ-${Date.now()}`,
+        reference_type: "adjustment",
+        timestamp: new Date().toISOString(),
+        notes: `Manual stock adjustment: ${Math.abs(quantity)} units ${type === "in" ? "added" : "removed"}`,
+        processed_by: user?.id || "", // Use authenticated user ID
+      }
+
+      // Call the stock movements API to create the movement
+      const response = await apiClient.post('/stock-movements', movementData)
+
+      if (response.success) {
+        // Refresh products to get updated stock levels from the database
+        await fetchProducts()
+      } else {
+        throw new Error(response.error?.message || 'Failed to create stock movement')
+      }
+    } catch (err) {
+      console.error('Failed to adjust stock:', err)
+      let errorMessage = 'Failed to adjust stock'
+
+      if (err instanceof ApiError) {
+        errorMessage = err.message
+      } else if (err instanceof Error) {
+        errorMessage = err.message
+      }
+
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    }
   }
 
   const refreshProducts = useCallback(() => {

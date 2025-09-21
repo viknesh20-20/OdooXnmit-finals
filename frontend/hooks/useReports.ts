@@ -78,15 +78,15 @@ export const useReports = () => {
         }
       ]
 
-      // Mock data for production and quality metrics (would come from other APIs)
+      // TODO: Replace with real API calls for production and quality metrics
       const reportData: ReportData = {
         productionSummary: {
-          completionRate: 87, // Would come from manufacturing orders API
-          avgCycleTime: 3.2,  // Would come from work orders API
+          completionRate: 0, // TODO: Get from manufacturing orders API
+          avgCycleTime: 0,   // TODO: Get from work orders API
         },
         qualityMetrics: {
-          firstPassYield: 94, // Would come from quality checks API
-          defectRate: 2.1,    // Would come from quality checks API
+          firstPassYield: 0, // TODO: Get from quality checks API
+          defectRate: 0,     // TODO: Get from quality checks API
         },
         workCenterUtilization,
         inventoryReport: {

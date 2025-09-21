@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import type { WorkCenter, WorkingHours } from "@/types"
 import { workCenterService, type WorkCenter as ApiWorkCenter, type CreateWorkCenterRequest, type UpdateWorkCenterRequest, type UtilizationUpdateRequest } from "@/lib/services/workCenterService"
 import { ApiError } from "@/lib/api"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Helper function to convert API working hours to frontend format
 const convertWorkingHours = (apiWorkingHours: any): WorkingHours | undefined => {
@@ -106,6 +107,7 @@ const mapFrontendToApiUpdate = (updates: Partial<WorkCenter>): UpdateWorkCenterR
 }
 
 export const useWorkCenters = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [workCenters, setWorkCenters] = useState<WorkCenter[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -128,8 +130,15 @@ export const useWorkCenters = () => {
   }, [])
 
   useEffect(() => {
-    fetchWorkCenters()
-  }, [fetchWorkCenters])
+    // Only fetch work centers if user is authenticated and auth is not loading
+    if (isAuthenticated && !authLoading) {
+      fetchWorkCenters()
+    } else if (!authLoading && !isAuthenticated) {
+      // User is not authenticated, clear data
+      setWorkCenters([])
+      setLoading(false)
+    }
+  }, [isAuthenticated, authLoading, fetchWorkCenters])
 
   const createWorkCenter = async (workCenterData: Omit<WorkCenter, "id">) => {
     try {

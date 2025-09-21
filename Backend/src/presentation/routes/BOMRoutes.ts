@@ -113,4 +113,18 @@ router.put(
   bomController.approveBOM.bind(bomController)
 );
 
+/**
+ * @route   POST /api/v1/boms/:id/duplicate
+ * @desc    Create a duplicate copy of an existing BOM
+ * @access  Private
+ * @param   {string} id - BOM UUID to duplicate
+ * @body    {object} [options] - Duplication options
+ * @body    {string} [options.created_by] - Creator UUID for the new BOM
+ */
+router.post(
+  '/:id/duplicate',
+  BOMValidator.duplicateBOMValidation(),
+  bomController.duplicateBOM.bind(bomController)
+);
+
 export default router;

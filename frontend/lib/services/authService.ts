@@ -77,22 +77,50 @@ class AuthService {
    * Login user with username/email and password
    */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response: ApiResponse<LoginResponse> = await apiClient.post(
+    const response: ApiResponse<{
+      user: AuthUser;
+      accessToken: string;
+      expiresIn: number;
+    }> = await apiClient.post(
       `${this.basePath}/login`,
       credentials
     );
-    return response.data!;
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || 'Login failed');
+    }
+
+    return {
+      user: response.data.user,
+      accessToken: response.data.accessToken,
+      expiresIn: response.data.expiresIn
+    };
   }
 
   /**
    * Register new user
    */
   async register(userData: RegisterRequest): Promise<RegisterResponse> {
-    const response: ApiResponse<RegisterResponse> = await apiClient.post(
+    const response: ApiResponse<{
+      user: AuthUser;
+      accessToken: string;
+      expiresIn: number;
+      message: string;
+    }> = await apiClient.post(
       `${this.basePath}/register`,
       userData
     );
-    return response.data!;
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || 'Registration failed');
+    }
+
+    return {
+      user: response.data.user,
+      accessToken: response.data.accessToken,
+      expiresIn: response.data.expiresIn,
+      message: response.data.message
+    };
   }
 
   /**
@@ -103,7 +131,12 @@ class AuthService {
       `${this.basePath}/forgot-password`,
       request
     );
-    return response.data!;
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || 'Forgot password request failed');
+    }
+
+    return response.data;
   }
 
   /**
@@ -120,7 +153,7 @@ class AuthService {
   /**
    * Refresh access token (refresh token is handled via httpOnly cookie)
    */
-  async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
+  async refreshToken(): Promise<RefreshTokenResponse> {
     const response: ApiResponse<RefreshTokenResponse> = await apiClient.post(
       `${this.basePath}/refresh`,
       {} // No body needed, refresh token is in httpOnly cookie
@@ -174,7 +207,7 @@ class AuthService {
    */
   async getDashboardData(): Promise<any> {
     const response: ApiResponse<any> = await apiClient.get('/dashboard');
-    return response.data!;
+    return response.data;
   }
 
   /**

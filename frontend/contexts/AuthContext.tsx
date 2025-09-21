@@ -53,23 +53,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const storedToken = localStorage.getItem('auth_token')
         const storedUser = localStorage.getItem('auth_user')
+        const lastValidation = localStorage.getItem('auth_last_validation')
 
         if (storedToken && storedUser) {
           setToken(storedToken)
           setUser(JSON.parse(storedUser))
 
-          // Validate token by making a test API call (optional)
-          try {
-            await validateToken(storedToken)
-          } catch (error) {
-            // Token is invalid, clear auth state
-            console.warn('Stored token is invalid, clearing auth state')
-            clearAuthState()
+          // Only validate token if it hasn't been validated recently (within last 5 minutes)
+          const now = Date.now()
+          const lastValidationTime = lastValidation ? parseInt(lastValidation) : 0
+          const validationInterval = 5 * 60 * 1000 // 5 minutes
+
+          if (now - lastValidationTime > validationInterval) {
+            try {
+              await validateToken(storedToken)
+              localStorage.setItem('auth_last_validation', now.toString())
+            } catch (error) {
+              // Token validation failed, but don't immediately clear auth state
+              // Let the API interceptor handle token refresh first
+              console.warn('Token validation failed, will attempt refresh on next API call')
+            }
           }
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
-        clearAuthState()
+        // Don't clear auth state on initialization errors
       } finally {
         setIsLoading(false)
       }
@@ -107,7 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('auth_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('auth_user')
-    localStorage.removeItem('manufacturing_user') // Keep backward compatibility
+    localStorage.removeItem('auth_last_validation')
+    localStorage.removeItem('manufacturing_user') // Remove legacy storage
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -123,55 +132,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Store access token and user data (refresh token is handled via httpOnly cookie)
         localStorage.setItem('auth_token', loginResponse.accessToken)
         localStorage.setItem('auth_user', JSON.stringify(loginResponse.user))
+        localStorage.setItem('auth_last_validation', Date.now().toString())
 
         setToken(loginResponse.accessToken)
         setUser(mapAuthUserToUser(loginResponse.user))
         return true
       } catch (apiError) {
-        console.warn('API authentication failed:', apiError)
-
-        // If it's a validation or authentication error, don't fall back to mock
-        if (apiError instanceof ApiError && (apiError.status === 401 || apiError.status === 400)) {
-          return false
-        }
-
-        // For other errors (network, server), fall back to mock auth
-        console.warn('Falling back to mock authentication')
+        console.error('Authentication failed:', apiError)
+        return false
       }
-
-      // Fallback to mock authentication for development
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      if ((email === "admin@manufacturing.com" || email === "admin") && password === "password123") {
-        const mockUser: User = {
-          id: "1",
-          email,
-          name: "Manufacturing Admin",
-          firstName: "Manufacturing",
-          lastName: "Admin",
-          role: "admin",
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-
-        // Generate mock token
-        const mockToken = `mock_token_${Date.now()}`
-
-        setUser(mockUser)
-        setToken(mockToken)
-        localStorage.setItem("manufacturing_user", JSON.stringify(mockUser))
-        localStorage.setItem('auth_token', mockToken)
-        localStorage.setItem('auth_user', JSON.stringify(mockUser))
-        return true
-      }
-      return false
     } finally {
       setIsLoading(false)
     }
   }
 
-  const signup = async (email: string, password: string, name: string, role: User["role"]): Promise<boolean> => {
+  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true)
     try {
       // Try real API registration first
@@ -205,34 +180,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return false
         }
 
-        // For other errors, fall back to mock registration
-        console.warn('Falling back to mock registration')
+        console.error('Registration failed:', apiError)
+        return false
       }
-
-      // Fallback to mock registration for development
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const mockUser: User = {
-        id: Date.now().toString(),
-        email,
-        name,
-        firstName: name.split(' ')[0] || name,
-        lastName: name.split(' ')[1] || '',
-        role,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-
-      // Generate mock token
-      const mockToken = `mock_token_${Date.now()}`
-
-      setUser(mockUser)
-      setToken(mockToken)
-      localStorage.setItem("manufacturing_user", JSON.stringify(mockUser))
-      localStorage.setItem('auth_token', mockToken)
-      localStorage.setItem('auth_user', JSON.stringify(mockUser))
-      return true
     } finally {
       setIsLoading(false)
     }
@@ -241,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshToken = async (): Promise<string> => {
     try {
       // Refresh token is handled via httpOnly cookie, so we don't need to pass it
-      const refreshResponse = await authService.refreshToken('')
+      const refreshResponse = await authService.refreshToken()
 
       // Update stored access token
       localStorage.setItem('auth_token', refreshResponse.accessToken)
@@ -260,7 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, ...userData }
       setUser(updatedUser)
       localStorage.setItem('auth_user', JSON.stringify(updatedUser))
-      localStorage.setItem('manufacturing_user', JSON.stringify(updatedUser)) // Keep backward compatibility
+      localStorage.removeItem('manufacturing_user') // Remove legacy storage
     }
   }
 
@@ -275,10 +225,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearAuthState()
   }
 
+  const isAuthenticated = !!token && !!user
+
+
+
   const value: AuthContextType = {
     user,
     token,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated,
     login,
     logout,
     signup,

@@ -25,8 +25,8 @@ export class WorkOrderValidator {
       
       query('status')
         .optional()
-        .isIn(['pending', 'in_progress', 'paused', 'completed', 'cancelled'])
-        .withMessage('Status must be one of: pending, in_progress, paused, completed, cancelled'),
+        .isIn(['pending', 'in-progress', 'paused', 'completed', 'cancelled'])
+        .withMessage('Status must be one of: pending, in-progress, paused, completed, cancelled'),
       
       query('work_center_id')
         .optional()
@@ -124,8 +124,8 @@ export class WorkOrderValidator {
       
       body('status')
         .optional()
-        .isIn(['pending', 'in_progress', 'paused', 'completed', 'cancelled'])
-        .withMessage('Status must be one of: pending, in_progress, paused, completed, cancelled'),
+        .isIn(['pending', 'in-progress', 'paused', 'completed', 'cancelled'])
+        .withMessage('Status must be one of: pending, in-progress, paused, completed, cancelled'),
       
       body('priority')
         .optional()
@@ -255,8 +255,8 @@ export class WorkOrderValidator {
       
       body('status')
         .optional()
-        .isIn(['pending', 'in_progress', 'paused', 'completed', 'cancelled'])
-        .withMessage('Status must be one of: pending, in_progress, paused, completed, cancelled'),
+        .isIn(['pending', 'in-progress', 'paused', 'completed', 'cancelled'])
+        .withMessage('Status must be one of: pending, in-progress, paused, completed, cancelled'),
       
       body('priority')
         .optional()
@@ -351,8 +351,8 @@ export class WorkOrderValidator {
 
       body('status')
         .notEmpty()
-        .isIn(['pending', 'in_progress', 'paused', 'completed', 'cancelled'])
-        .withMessage('Status is required and must be one of: pending, in_progress, paused, completed, cancelled'),
+        .isIn(['pending', 'in-progress', 'paused', 'completed', 'cancelled'])
+        .withMessage('Status is required and must be one of: pending, in-progress, paused, completed, cancelled'),
 
       body('comments')
         .optional()

@@ -39,18 +39,14 @@ export class LoginUseCase implements ILoginUseCase {
         return failure(new EntityNotFoundError('User', command.usernameOrEmail).toDomainError());
       }
 
-      // Check if user can login
-      if (!user.canLogin()) {
-        if (!user.isActive()) {
-          return failure(new BusinessRuleViolationError('User account is not active').toDomainError());
-        }
-        if (user.isLocked()) {
-          return failure(new BusinessRuleViolationError('User account is temporarily locked due to failed login attempts').toDomainError());
-        }
-        if (!user.emailVerified) {
-          return failure(new BusinessRuleViolationError('Email address must be verified before login').toDomainError());
-        }
+      // Check if user can login (excluding email verification requirement)
+      if (!user.isActive()) {
+        return failure(new BusinessRuleViolationError('User account is not active').toDomainError());
       }
+      if (user.isLocked()) {
+        return failure(new BusinessRuleViolationError('User account is temporarily locked due to failed login attempts').toDomainError());
+      }
+      // Email verification is optional - users can login without verification
 
       // Verify password
       const isPasswordValid = await this.passwordService.verify(command.password, user.password.hash);
@@ -166,7 +162,7 @@ export class RefreshTokenUseCase {
 
       // Get user from token
       const user = await this.userRepository.findById(tokenEntity.userId);
-      if (!user || !user.canLogin()) {
+      if (!user || !user.isActive() || user.isLocked()) {
         return failure(new BusinessRuleViolationError('User cannot login').toDomainError());
       }
 

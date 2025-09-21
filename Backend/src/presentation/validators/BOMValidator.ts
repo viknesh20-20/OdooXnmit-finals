@@ -227,4 +227,20 @@ export class BOMValidator {
         .withMessage('Approved by is required and must be a valid UUID'),
     ];
   }
+
+  /**
+   * Validation for POST /api/v1/boms/:id/duplicate
+   */
+  static duplicateBOMValidation(): ValidationChain[] {
+    return [
+      param('id')
+        .isUUID()
+        .withMessage('BOM ID must be a valid UUID'),
+      
+      body('created_by')
+        .optional()
+        .isUUID()
+        .withMessage('Created by must be a valid UUID'),
+    ];
+  }
 }

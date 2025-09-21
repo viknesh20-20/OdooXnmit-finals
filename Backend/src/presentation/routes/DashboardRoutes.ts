@@ -1,14 +1,13 @@
 import { Router } from 'express';
 import { resolve } from '@infrastructure/di/Container';
 import { DashboardController } from '@presentation/controllers/DashboardController';
-import { AuthMiddleware } from '@presentation/middleware/AuthMiddleware';
+import { authenticateToken } from '@presentation/middleware/AuthMiddleware';
 
 const router = Router();
 const dashboardController = resolve<DashboardController>('DashboardController');
-const authMiddleware = resolve<AuthMiddleware>('AuthMiddleware');
 
 // All dashboard routes require authentication
-router.use(authMiddleware.authenticate);
+router.use(authenticateToken);
 
 /**
  * @route GET /api/v1/dashboard

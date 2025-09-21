@@ -288,4 +288,65 @@ export class UserRepository implements IUserRepository {
       throw error;
     }
   }
+
+  public async findRoleByName(name: string): Promise<import('@domain/repositories/IUserRepository').Role | null> {
+    try {
+      const sequelize = this.databaseConnection.getSequelize();
+      const RoleModel = sequelize.models.Role as any;
+
+      if (!RoleModel) {
+        this.logger.warn('Role model not found in sequelize models');
+        return null;
+      }
+
+      const roleRecord = await RoleModel.findOne({
+        where: { name },
+        attributes: ['id', 'name', 'description', 'permissions'],
+      });
+
+      if (!roleRecord) {
+        return null;
+      }
+
+      return {
+        id: roleRecord.id,
+        name: roleRecord.name,
+        description: roleRecord.description,
+        permissions: roleRecord.permissions,
+      };
+    } catch (error) {
+      this.logger.error('Error finding role by name', error as Error, { roleName: name });
+      throw error;
+    }
+  }
+
+  public async findRoleById(id: UUID): Promise<import('@domain/repositories/IUserRepository').Role | null> {
+    try {
+      const sequelize = this.databaseConnection.getSequelize();
+      const RoleModel = sequelize.models.Role as any;
+
+      if (!RoleModel) {
+        this.logger.warn('Role model not found in sequelize models');
+        return null;
+      }
+
+      const roleRecord = await RoleModel.findByPk(id, {
+        attributes: ['id', 'name', 'description', 'permissions'],
+      });
+
+      if (!roleRecord) {
+        return null;
+      }
+
+      return {
+        id: roleRecord.id,
+        name: roleRecord.name,
+        description: roleRecord.description,
+        permissions: roleRecord.permissions,
+      };
+    } catch (error) {
+      this.logger.error('Error finding role by ID', error as Error, { roleId: id });
+      throw error;
+    }
+  }
 }

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Auth Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Frontend Authentication Test</h1>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="admin@manufacturing.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+            <button type="submit">Test Login</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api/v1';
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                resultDiv.innerHTML = '<div class="result">Testing login...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // Include cookies
+                    body: JSON.stringify({
+                        usernameOrEmail: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Login Successful!</h3>
+                            <p><strong>User:</strong> ${data.data.user.fullName}</p>
+                            <p><strong>Email:</strong> ${data.data.user.email}</p>
+                            <p><strong>Token:</strong> ${data.data.accessToken.substring(0, 50)}...</p>
+                            <h4>Full Response:</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    // Store token for further testing
+                    localStorage.setItem('auth_token', data.data.accessToken);
+                    
+                    // Test a protected endpoint
+                    setTimeout(() => testProtectedEndpoint(data.data.accessToken), 1000);
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Login Failed</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error?.message || 'Unknown error'}</p>
+                            <h4>Full Response:</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        async function testProtectedEndpoint(token) {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/products`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML += `
+                        <div class="result success" style="margin-top: 10px;">
+                            <h3>✅ Protected Endpoint Test Successful!</h3>
+                            <p><strong>Products Found:</strong> ${data.data.products.length}</p>
+                            <p><strong>First Product:</strong> ${data.data.products[0]?.name || 'N/A'}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML += `
+                        <div class="result error" style="margin-top: 10px;">
+                            <h3>❌ Protected Endpoint Test Failed</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error?.message || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div class="result error" style="margin-top: 10px;">
+                        <h3>❌ Protected Endpoint Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

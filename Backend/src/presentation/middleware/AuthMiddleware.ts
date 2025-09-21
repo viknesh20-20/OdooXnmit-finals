@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { IJWTService } from '@application/interfaces/IPasswordService';
 import { ILogger } from '@application/interfaces/IPasswordService';
 import { AuthenticatedRequest } from '@presentation/controllers/AuthController';
+export { AuthenticatedRequest };
 
 // Simple authentication middleware for testing
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {

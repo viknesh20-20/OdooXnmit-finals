@@ -107,8 +107,8 @@ class WorkCenterService {
     
     const response: PaginatedResponse<WorkCenter> = await apiClient.get(url);
     return {
-      workCenters: (response.data as any).workCenters || [],
-      pagination: response.data.pagination
+      workCenters: response.data?.workCenters || [],
+      pagination: response.data?.pagination
     };
   }
 

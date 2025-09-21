@@ -19,8 +19,8 @@ interface BOMCardProps {
 export const BOMCard: React.FC<BOMCardProps> = ({ bom, onEdit, onDuplicate, onDelete, onToggleActive }) => {
   const [showDetails, setShowDetails] = useState(false)
 
-  const totalDuration = bom.operations.reduce((sum, op) => sum + op.duration, 0)
-  const totalComponents = bom.components.length
+  const totalDuration = (bom.operations || []).reduce((sum, op) => sum + (op.duration || 0), 0)
+  const totalComponents = (bom.components || []).length
 
   return (
     <Card className="hover:bg-accent/50 transition-colors">
@@ -78,7 +78,7 @@ export const BOMCard: React.FC<BOMCardProps> = ({ bom, onEdit, onDuplicate, onDe
             <div className="flex items-center gap-2 text-sm">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <div>
-                <div className="font-medium">{bom.operations.length} Operations</div>
+                <div className="font-medium">{(bom.operations || []).length} Operations</div>
                 <div className="text-xs text-muted-foreground">Manufacturing steps</div>
               </div>
             </div>
@@ -109,7 +109,7 @@ export const BOMCard: React.FC<BOMCardProps> = ({ bom, onEdit, onDuplicate, onDe
               <div>
                 <h4 className="font-medium mb-2">Components</h4>
                 <div className="space-y-2">
-                  {bom.components.map((component) => (
+                  {(bom.components || []).map((component) => (
                     <div
                       key={component.id}
                       className="flex justify-between items-center text-sm bg-muted/50 p-2 rounded"
@@ -127,8 +127,8 @@ export const BOMCard: React.FC<BOMCardProps> = ({ bom, onEdit, onDuplicate, onDe
               <div>
                 <h4 className="font-medium mb-2">Operations</h4>
                 <div className="space-y-2">
-                  {bom.operations
-                    .sort((a, b) => a.sequence - b.sequence)
+                  {(bom.operations || [])
+                    .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
                     .map((operation) => (
                       <div
                         key={operation.id}
@@ -136,11 +136,11 @@ export const BOMCard: React.FC<BOMCardProps> = ({ bom, onEdit, onDuplicate, onDe
                       >
                         <div>
                           <span className="font-medium">
-                            {operation.sequence}. {operation.operation}
+                            {operation.sequence || 0}. {operation.operation || 'Unknown Operation'}
                           </span>
-                          <div className="text-xs text-muted-foreground">{operation.workCenter}</div>
+                          <div className="text-xs text-muted-foreground">{operation.workCenter || 'Unknown Work Center'}</div>
                         </div>
-                        <span className="font-medium">{operation.duration} min</span>
+                        <span className="font-medium">{operation.duration || 0} min</span>
                       </div>
                     ))}
                 </div>

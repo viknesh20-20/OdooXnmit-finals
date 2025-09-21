@@ -65,6 +65,14 @@ export class RegisterUserUseCase implements IRegisterUserUseCase {
       // Hash password
       const hashedPassword = await this.passwordService.hash(command.password);
 
+      // Get default role if none provided
+      let roleId = command.roleId;
+      if (!roleId) {
+        // For now, create users without a role - this can be assigned later
+        // TODO: Implement proper role assignment after user creation
+        this.logger.info('Creating user without role - role can be assigned later');
+      }
+
       // Create user entity
       const createUserProps: CreateUserProps = {
         username: command.username,
@@ -72,7 +80,7 @@ export class RegisterUserUseCase implements IRegisterUserUseCase {
         password: command.password,
         firstName: command.firstName,
         lastName: command.lastName,
-        roleId: command.roleId,
+        roleId: roleId,
       };
 
       const user = User.create(createUserProps, hashedPassword);

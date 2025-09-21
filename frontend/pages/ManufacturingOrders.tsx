@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { useManufacturingOrders } from "@/hooks/useManufacturingOrders"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,13 +14,15 @@ import type { ManufacturingOrder } from "@/types"
 import { format } from "date-fns"
 
 export const ManufacturingOrders: React.FC = () => {
-  const { orders, loading } = useManufacturingOrders()
+  const { orders, loading, error, refetch } = useManufacturingOrders()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<ManufacturingOrder["status"] | "all">("all")
   const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<ManufacturingOrder | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
+
+
 
   // Filter orders based on search and status
   const filteredOrders = orders.filter((order) => {
@@ -67,7 +68,8 @@ export const ManufacturingOrders: React.FC = () => {
   }
 
   const handleOrderUpdated = (updatedOrder: ManufacturingOrder) => {
-    // Handle the updated order (could refresh data, show notification, etc.)
+    // Refresh the data to show the updated order
+    refetch()
     console.log("Order updated:", updatedOrder)
   }
 
@@ -75,6 +77,21 @@ export const ManufacturingOrders: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading manufacturing orders...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-destructive">Error Loading Manufacturing Orders</h3>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+        <Button onClick={refetch} variant="outline">
+          Try Again
+        </Button>
       </div>
     )
   }
@@ -87,7 +104,7 @@ export const ManufacturingOrders: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Manufacturing Orders</h1>
           <p className="text-muted-foreground">Manage and track your production orders from planning to completion</p>
         </div>
-        <CreateOrderModal onOrderCreated={() => {}} />
+        <CreateOrderModal onOrderCreated={refetch} />
       </div>
 
       {/* KPI Cards */}

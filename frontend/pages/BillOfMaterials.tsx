@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BOMCard } from "@/components/bom/BOMCard"
 import { CreateBOMModal } from "@/components/bom/CreateBOMModal"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Plus, Search, Filter, Loader2, FileText, Package, Clock, Building2 } from "lucide-react"
 import type { BOM } from "@/types"
 
@@ -21,9 +22,9 @@ export const BillOfMaterials: React.FC = () => {
   // Filter BOMs based on search and status
   const filteredBOMs = boms.filter((bom) => {
     const matchesSearch =
-      bom.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bom.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bom.version.toLowerCase().includes(searchTerm.toLowerCase())
+      (bom.productName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (bom.id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (bom.version || "").toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || (statusFilter === "active" ? bom.isActive : !bom.isActive)
     return matchesSearch && matchesStatus
   })
@@ -32,10 +33,10 @@ export const BillOfMaterials: React.FC = () => {
   const kpis = {
     totalBOMs: boms.length,
     activeBOMs: boms.filter((bom) => bom.isActive).length,
-    totalComponents: boms.reduce((sum, bom) => sum + bom.components.length, 0),
-    avgOperations: Math.round(boms.reduce((sum, bom) => sum + bom.operations.length, 0) / (boms.length || 1)),
+    totalComponents: boms.reduce((sum, bom) => sum + (bom.components?.length || 0), 0),
+    avgOperations: Math.round(boms.reduce((sum, bom) => sum + (bom.operations?.length || 0), 0) / (boms.length || 1)),
     avgCycleTime: Math.round(
-      boms.reduce((sum, bom) => sum + bom.operations.reduce((opSum, op) => opSum + op.duration, 0), 0) /
+      boms.reduce((sum, bom) => sum + (bom.operations || []).reduce((opSum, op) => opSum + (op.duration || 0), 0), 0) /
         (boms.length || 1),
     ),
   }
@@ -82,7 +83,8 @@ export const BillOfMaterials: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundary>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -217,6 +219,7 @@ export const BillOfMaterials: React.FC = () => {
         onSubmit={handleSubmit}
         editingBOM={editingBOM}
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   )
 }

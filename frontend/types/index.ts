@@ -39,13 +39,18 @@ export interface User {
 export interface ManufacturingOrder {
   id: string
   reference?: string
+  moNumber?: string
   productId?: string
   productName: string
+  productCode?: string
   quantity: number
+  quantityUnit?: string
   status: OrderStatus
   priority?: PriorityLevel
   startDate: string
   dueDate: string
+  plannedStartDate?: string
+  plannedEndDate?: string
   actualStartDate?: string
   actualEndDate?: string
   assigneeId?: string
@@ -95,6 +100,30 @@ export interface WorkOrder {
   timeEntries?: TimeEntry[]
   createdAt?: string
   updatedAt?: string
+}
+
+// Backend API expects snake_case field names
+export interface WorkOrderCreateRequest {
+  wo_number?: string
+  manufacturing_order_id: string
+  work_center_id: string
+  operation: string
+  operation_type?: string
+  duration: number
+  estimated_duration?: number
+  status: string
+  priority?: string
+  assigned_to?: string
+  sequence: number
+  start_time?: string
+  end_time?: string
+  pause_time: number
+  dependencies: string[]
+  instructions?: string
+  comments?: string
+  quality_checks: Record<string, unknown>[]
+  time_entries: Record<string, unknown>[]
+  metadata: Record<string, unknown>
 }
 
 export interface WorkCenter {

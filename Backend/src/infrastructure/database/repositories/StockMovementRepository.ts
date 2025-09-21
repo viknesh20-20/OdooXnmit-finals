@@ -2,22 +2,9 @@ import { inject, injectable } from 'inversify';
 import { Op } from 'sequelize';
 
 import { UUID } from '@/types/common';
-import { IStockMovementRepository } from '@domain/repositories/IUserRepository';
+import { IStockMovementRepository, StockMovement } from '@domain/repositories/IUserRepository';
 import { DatabaseConnection } from '@infrastructure/database/config/DatabaseConfig';
 import { ILogger } from '@application/interfaces/IPasswordService';
-
-// Simple StockMovement interface for dashboard data (using StockLedger as the source)
-export interface StockMovement {
-  id: string;
-  productId: string;
-  productName?: string;
-  type: 'in' | 'out';
-  quantity: number;
-  reference?: string;
-  referenceType?: string;
-  notes?: string;
-  createdAt: string;
-}
 
 @injectable()
 export class StockMovementRepository implements IStockMovementRepository {
@@ -53,7 +40,7 @@ export class StockMovementRepository implements IStockMovementRepository {
 
       return records.map((record: any) => this.mapToStockMovement(record));
     } catch (error) {
-      this.logger.error('Error finding recent stock movements', { error, options });
+      this.logger.error('Error finding recent stock movements', error as Error);
       throw error;
     }
   }
@@ -84,7 +71,7 @@ export class StockMovementRepository implements IStockMovementRepository {
 
       return records.map((record: any) => this.mapToStockMovement(record));
     } catch (error) {
-      this.logger.error('Error finding stock movements by product ID', { error, productId, warehouseId });
+      this.logger.error('Error finding stock movements by product ID', error as Error);
       throw error;
     }
   }
@@ -115,7 +102,7 @@ export class StockMovementRepository implements IStockMovementRepository {
 
       return records.map((record: any) => this.mapToStockMovement(record));
     } catch (error) {
-      this.logger.error('Error finding stock movements by reference', { error, referenceId, referenceType });
+      this.logger.error('Error finding stock movements by reference', error as Error);
       throw error;
     }
   }
@@ -150,7 +137,7 @@ export class StockMovementRepository implements IStockMovementRepository {
 
       return records.map((record: any) => this.mapToStockMovement(record));
     } catch (error) {
-      this.logger.error('Error finding stock movements by date range', { error, startDate, endDate, warehouseId });
+      this.logger.error('Error finding stock movements by date range', error as Error);
       throw error;
     }
   }
