@@ -35,8 +35,8 @@ export class ManufacturingOrderValidator {
       
       query('priority')
         .optional()
-        .isIn(['low', 'medium', 'high', 'urgent'])
-        .withMessage('Priority must be one of: low, medium, high, urgent'),
+        .isIn(['low', 'normal', 'high', 'urgent'])
+        .withMessage('Priority must be one of: low, normal, high, urgent'),
       
       query('created_by')
         .optional()
@@ -112,8 +112,8 @@ export class ManufacturingOrderValidator {
       
       body('priority')
         .optional()
-        .isIn(['low', 'medium', 'high', 'urgent'])
-        .withMessage('Priority must be one of: low, medium, high, urgent'),
+        .isIn(['low', 'normal', 'high', 'urgent'])
+        .withMessage('Priority must be one of: low, normal, high, urgent'),
       
       body('planned_start_date')
         .optional()
@@ -204,8 +204,8 @@ export class ManufacturingOrderValidator {
       
       body('priority')
         .optional()
-        .isIn(['low', 'medium', 'high', 'urgent'])
-        .withMessage('Priority must be one of: low, medium, high, urgent'),
+        .isIn(['low', 'normal', 'high', 'urgent'])
+        .withMessage('Priority must be one of: low, normal, high, urgent'),
       
       body('planned_start_date')
         .optional()

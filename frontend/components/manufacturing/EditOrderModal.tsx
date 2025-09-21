@@ -50,7 +50,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
       setFormData({
         productId: order.productId || "",
         quantity: order.quantity,
-        priority: order.priority || "medium",
+        priority: order.priority || "normal",
         dueDate: order.dueDate ? new Date(order.dueDate).toISOString().slice(0, 16) : "",
         assigneeId: order.assigneeId || "",
         bomId: order.bomId || "",

@@ -196,7 +196,7 @@ export class ManufacturingOrderDomainService {
       case 'high':
         score += 75;
         break;
-      case 'medium':
+      case 'normal':
         score += 50;
         break;
       case 'low':

@@ -6,7 +6,7 @@ export const WORK_CENTER_STATUS = ['active', 'maintenance', 'inactive'] as const
 export const PRODUCT_CATEGORY = ['raw-material', 'finished-good', 'component'] as const
 export const STOCK_MOVEMENT_TYPE = ['in', 'out'] as const
 export const MOVEMENT_REFERENCE_TYPE = ['manufacturing-order', 'purchase', 'adjustment', 'transfer'] as const
-export const PRIORITY_LEVELS = ['low', 'medium', 'high', 'urgent'] as const
+export const PRIORITY_LEVELS = ['low', 'normal', 'high', 'urgent'] as const
 
 // Type definitions from constants
 export type UserRole = typeof USER_ROLES[number]

@@ -38,7 +38,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
   const [formData, setFormData] = useState<CreateManufacturingOrderForm>({
     productId: "",
     quantity: 1,
-    priority: "medium",
+    priority: "normal",
     dueDate: "",
     assigneeId: "",
     bomId: "",
@@ -143,7 +143,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
       setFormData({
         productId: "",
         quantity: 1,
-        priority: "medium",
+        priority: "normal",
         dueDate: "",
         assigneeId: "",
         bomId: "",

@@ -18,7 +18,7 @@ router.use(authenticateToken);
  * @query   {string} search - Search term for MO number or notes
  * @query   {string} status - Filter by status (draft, planned, released, in_progress, paused, completed, cancelled)
  * @query   {string} product_id - Filter by product UUID
- * @query   {string} priority - Filter by priority (low, medium, high, urgent)
+ * @query   {string} priority - Filter by priority (low, normal, high, urgent)
  * @query   {string} created_by - Filter by creator UUID
  * @query   {string} assigned_to - Filter by assignee UUID
  * @query   {string} sortBy - Sort field (mo_number, status, priority, planned_start_date, planned_end_date, created_at)

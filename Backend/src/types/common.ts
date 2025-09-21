@@ -46,7 +46,7 @@ export enum StockTransactionType {
 
 export enum PriorityLevel {
   LOW = 'low',
-  MEDIUM = 'medium',
+  NORMAL = 'normal',
   HIGH = 'high',
   URGENT = 'urgent',
 }

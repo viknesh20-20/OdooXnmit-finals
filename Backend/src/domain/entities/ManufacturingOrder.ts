@@ -351,7 +351,7 @@ export class ManufacturingOrder {
       bomId: props.bomId,
       quantity: Quantity.create(props.quantity, props.quantityUnit),
       status: ManufacturingOrderStatus.DRAFT,
-      priority: props.priority ?? PriorityLevel.MEDIUM,
+      priority: props.priority ?? PriorityLevel.NORMAL,
       plannedStartDate: props.plannedStartDate,
       plannedEndDate: props.plannedEndDate,
       createdBy,
