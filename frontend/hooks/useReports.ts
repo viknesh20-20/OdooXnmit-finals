@@ -72,7 +72,7 @@ export const useReports = () => {
       ])
 
       // Process work center utilization data
-      const workCenterUtilization = workCenterUtilizationData.data?.utilizationData?.map(wc => ({
+      const workCenterUtilization = workCenterUtilizationData?.data?.utilizationData?.map(wc => ({
         workCenter: wc.work_center_name,
         utilization: wc.utilization_percentage,
         capacity: wc.capacity,
