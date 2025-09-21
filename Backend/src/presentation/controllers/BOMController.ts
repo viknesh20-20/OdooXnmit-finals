@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { BOMModel, BOMComponentModel, BOMOperationModel } from '@infrastructure/database/models/BOMModel';
 import { ProductModel } from '@infrastructure/database/models/ProductModel';
 import { Logger } from '@infrastructure/logging/Logger';
+import { AuthenticatedRequest } from '@presentation/controllers/AuthController';
 
 export class BOMController {
   private logger: Logger;
@@ -163,7 +164,7 @@ export class BOMController {
   }
 
   // POST /api/v1/boms
-  public async createBOM(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async createBOM(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -178,7 +179,10 @@ export class BOMController {
         return;
       }
 
-      const bomData = req.body;
+      const bomData = {
+        ...req.body,
+        created_by: req.user?.userId || req.body.created_by, // Use authenticated user ID
+      };
 
       // Verify product exists
       const product = await ProductModel.findByPk(bomData.product_id);
@@ -370,7 +374,7 @@ export class BOMController {
   }
 
   // POST /api/v1/boms/:id/duplicate
-  public async duplicateBOM(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async duplicateBOM(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -417,14 +421,27 @@ export class BOMController {
       }
 
       // Create the new BOM with duplicated data
+      // Generate a short unique version (max 20 chars)
+      const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+      const baseVersion = originalBom.version.length > 8 ? originalBom.version.slice(0, 8) : originalBom.version;
+      const newVersion = `${baseVersion}-c${timestamp}`;
+
+      this.logger.info('Duplicating BOM', {
+        originalVersion: originalBom.version,
+        baseVersion,
+        timestamp,
+        newVersion: newVersion.slice(0, 20),
+        newVersionLength: newVersion.slice(0, 20).length
+      });
+
       const duplicatedBOMData = {
         product_id: originalBom.product_id,
-        version: `${originalBom.version}-copy-${Date.now()}`, // Make version unique
+        version: newVersion.slice(0, 20), // Ensure it fits within 20 character limit
         name: `${originalBom.name} (Copy)`,
         description: originalBom.description ? `Copy of: ${originalBom.description}` : 'Duplicated BOM',
         is_active: false, // New BOMs should start as inactive
         is_default: false, // Copies shouldn't be default
-        created_by: req.body.created_by || 'system', // Use provided created_by or default to system
+        created_by: req.user?.userId || originalBom.created_by, // Use authenticated user or original creator
         approved_by: undefined,
         approved_at: undefined,
         metadata: originalBom.metadata,
@@ -505,12 +522,19 @@ export class BOMController {
   }
 
   private formatBOMResponse(bom: BOMModel): any {
+    // Extract components and operations from metadata
+    const metadata = bom.metadata || {};
+    const components = metadata.components || [];
+    const operations = metadata.operations || [];
+
     return {
       id: bom.id,
       productId: bom.product_id,
+      productName: bom.name, // Use BOM name as productName for frontend compatibility
       version: bom.version,
       name: bom.name,
       description: bom.description,
+      notes: bom.description, // Map description to notes for frontend compatibility
       isActive: bom.is_active,
       isDefault: bom.is_default,
       createdBy: bom.created_by,
@@ -518,8 +542,13 @@ export class BOMController {
       approvedAt: bom.approved_at,
       metadata: bom.metadata,
       product: bom.product,
-      components: bom.components,
-      operations: bom.operations,
+      components: components,
+      operations: operations,
+      reference: metadata.reference,
+      totalCost: metadata.totalCost,
+      estimatedTime: metadata.estimatedTime,
+      validFrom: metadata.validFrom,
+      validTo: metadata.validTo,
       createdAt: bom.created_at,
       updatedAt: bom.updated_at,
     };

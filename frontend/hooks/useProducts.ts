@@ -179,11 +179,11 @@ export const useProducts = () => {
       // Call the stock movements API to create the movement
       const response = await apiClient.post('/stock-movements', movementData)
 
-      if (response.success) {
+      if (response.data?.success) {
         // Refresh products to get updated stock levels from the database
         await fetchProducts()
       } else {
-        throw new Error(response.error?.message || 'Failed to create stock movement')
+        throw new Error(response.data?.error?.message || 'Failed to create stock movement')
       }
     } catch (err) {
       console.error('Failed to adjust stock:', err)

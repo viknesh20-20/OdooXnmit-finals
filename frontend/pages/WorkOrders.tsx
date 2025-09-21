@@ -8,14 +8,17 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { WorkOrderCard } from "@/components/work-orders/WorkOrderCard"
 import { CreateWorkOrderModal } from "@/components/work-orders/CreateWorkOrderModal"
+import { EditWorkOrderModal } from "@/components/work-orders/EditWorkOrderModal"
 import { Plus, Search, Filter, Loader2, Clock } from "lucide-react"
 import type { WorkOrder } from "@/types"
 
 export const WorkOrders: React.FC = () => {
-  const { workOrders, loading, startWorkOrder, pauseWorkOrder, completeWorkOrder, createWorkOrder } = useWorkOrders()
+  const { workOrders, loading, startWorkOrder, pauseWorkOrder, completeWorkOrder, createWorkOrder, updateWorkOrder, deleteWorkOrder } = useWorkOrders()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<WorkOrder["status"] | "all">("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Filter work orders based on search and status
   const filteredWorkOrders = workOrders.filter((workOrder) => {
@@ -36,6 +39,28 @@ export const WorkOrders: React.FC = () => {
     inProgress: workOrders.filter((wo) => wo.status === "in-progress").length,
     paused: workOrders.filter((wo) => wo.status === "paused").length,
     completed: workOrders.filter((wo) => wo.status === "completed").length,
+  }
+
+  const handleEdit = (workOrder: WorkOrder) => {
+    setEditingWorkOrder(workOrder)
+    setIsEditModalOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this work order?')) {
+      try {
+        await deleteWorkOrder(id)
+      } catch (error) {
+        console.error('Failed to delete work order:', error)
+        alert('Failed to delete work order. Please try again.')
+      }
+    }
+  }
+
+  const handleEditSubmit = async (id: string, updates: Partial<WorkOrder>) => {
+    await updateWorkOrder(id, updates)
+    setIsEditModalOpen(false)
+    setEditingWorkOrder(null)
   }
 
   if (loading) {
@@ -164,6 +189,8 @@ export const WorkOrders: React.FC = () => {
               onStart={startWorkOrder}
               onPause={pauseWorkOrder}
               onComplete={completeWorkOrder}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           ))
         )}
@@ -174,6 +201,17 @@ export const WorkOrders: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={createWorkOrder}
+      />
+
+      {/* Edit Work Order Modal */}
+      <EditWorkOrderModal
+        workOrder={editingWorkOrder}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingWorkOrder(null)
+        }}
+        onSubmit={handleEditSubmit}
       />
     </div>
   )

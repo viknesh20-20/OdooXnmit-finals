@@ -3,7 +3,7 @@
 import type React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, TrendingDown, Package, ShoppingCart, Settings, Edit, Trash2, MoreHorizontal } from "lucide-react"
+import { TrendingUp, TrendingDown, Package, ShoppingCart, Settings, Edit, Trash2 } from "lucide-react"
 import type { StockMovement } from "@/types"
 import { format } from "date-fns"
 

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import type { ManufacturingOrder, BOM, User, CreateManufacturingOrderForm } from "@/types"
+import type { ManufacturingOrder, BOM, CreateManufacturingOrderForm } from "@/types"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,8 @@ import { useBOMs } from "@/hooks/useBOMs"
 import { useWorkCenters } from "@/hooks/useWorkCenters"
 import { useActiveUsers } from "@/hooks/useUsers"
 import { PRIORITY_LEVELS } from "@/types"
+import { validateManufacturingOrderForm, hasValidationErrors, type ValidationErrors } from "@/lib/validation/manufacturingOrderValidation"
+import { FormError, FieldError } from "@/components/ui/form-error"
 
 interface EditOrderModalProps {
   order: ManufacturingOrder | null
@@ -31,10 +33,11 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
   const { users, loading: usersLoading, error: usersError } = useActiveUsers()
   
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<ValidationErrors>({})
   const [formData, setFormData] = useState<CreateManufacturingOrderForm>({
     productId: "",
     quantity: 1,
-    priority: "medium",
+    priority: "normal",
     dueDate: "",
     assigneeId: "",
     bomId: "",
@@ -70,11 +73,22 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
     }
   }, [formData.productId, boms])
 
+  const validateForm = (): boolean => {
+    const validationErrors = validateManufacturingOrderForm(formData)
+    setErrors(validationErrors)
+    return !hasValidationErrors(validationErrors)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!order) return
-    
+
+    if (!validateForm()) {
+      return
+    }
+
     setIsSubmitting(true)
+    setErrors({})
 
     try {
       const selectedProduct = products.find(p => p.id === formData.productId)
@@ -106,6 +120,14 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
       onClose()
     } catch (error) {
       console.error("Error updating manufacturing order:", error)
+      let errorMessage = 'Failed to update manufacturing order'
+
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      // Set a general error that can be displayed to the user
+      setErrors({ submit: errorMessage })
     } finally {
       setIsSubmitting(false)
     }
@@ -136,6 +158,35 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
           </DialogDescription>
         </DialogHeader>
 
+        {/* Submit Error Display */}
+        {errors.submit && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{errors.submit}</p>
+          </div>
+        )}
+
+        {/* Form Error Summary */}
+        {Object.keys(errors).filter(key => key !== 'submit').length > 0 && (
+          <FormError
+            error={Object.values(errors).filter((_, index) => Object.keys(errors)[index] !== 'submit')}
+            variant="destructive"
+            className="mb-4"
+          />
+        )}
+
+        {/* Loading Errors */}
+        {(bomsError || workCentersError || usersError) && (
+          <FormError
+            error={[
+              bomsError && `BOMs: ${bomsError}`,
+              workCentersError && `Work Centers: ${workCentersError}`,
+              usersError && `Users: ${usersError}`
+            ].filter((error): error is string => Boolean(error))}
+            variant="destructive"
+            className="mb-4"
+          />
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -155,6 +206,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError error={errors.productId} />
             </div>
 
             <div className="space-y-2">
@@ -167,6 +219,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                 onChange={(e) => handleInputChange('quantity', Number.parseInt(e.target.value))}
                 required
               />
+              <FieldError error={errors.quantity} />
             </div>
           </div>
 
@@ -199,6 +252,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                 onChange={(e) => handleInputChange('dueDate', e.target.value)}
                 required
               />
+              <FieldError error={errors.dueDate} />
             </div>
           </div>
 
@@ -228,6 +282,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                   )}
                 </SelectContent>
               </Select>
+              <FieldError error={errors.assigneeId} />
             </div>
 
             <div className="space-y-2">
@@ -286,6 +341,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ order, isOpen, o
                 )}
               </SelectContent>
             </Select>
+            <FieldError error={errors.bomId} />
           </div>
 
           <div className="space-y-2">

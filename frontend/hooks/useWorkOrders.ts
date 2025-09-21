@@ -117,6 +117,16 @@ export const useWorkOrders = () => {
     }
   }
 
+  const deleteWorkOrder = async (id: string) => {
+    try {
+      await apiClient.delete(`/work-orders/${id}`)
+      setWorkOrders((prev) => prev.filter((wo) => wo.id !== id))
+    } catch (err) {
+      console.error('Failed to delete work order:', err)
+      throw err
+    }
+  }
+
   const refetch = () => {
     fetchWorkOrders()
   }
@@ -130,6 +140,7 @@ export const useWorkOrders = () => {
     completeWorkOrder,
     updateWorkOrder,
     createWorkOrder,
+    deleteWorkOrder,
     refetch,
   }
 }

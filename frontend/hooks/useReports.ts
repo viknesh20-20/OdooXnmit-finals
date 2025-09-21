@@ -1,26 +1,33 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { workCenterService } from "@/lib/services/workCenterService"
-import { productService } from "@/lib/services/productService"
+import { reportService } from "@/lib/services/reportService"
 import { ApiError } from "@/lib/api"
 
 interface ReportData {
   productionSummary: {
     completionRate: number
     avgCycleTime: number
+    totalOrders: number
+    completedOrders: number
+    inProgressOrders: number
+    pendingOrders: number
   }
   qualityMetrics: {
     firstPassYield: number
     defectRate: number
+    overallEfficiency: number
   }
   workCenterUtilization: Array<{
     workCenter: string
     utilization: number
+    capacity: number
+    totalOrders: number
   }>
   inventoryReport: {
     totalProducts: number
     lowStockItems: number
+    outOfStockItems: number
     totalValue: number
     categoryBreakdown: Array<{
       category: string
@@ -35,63 +42,89 @@ export const useReports = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch report data from various APIs
+  // Fetch report data from backend APIs
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch data from multiple sources in parallel
-      const [workCentersResponse, productsResponse] = await Promise.all([
-        workCenterService.getWorkCenters(),
-        productService.getProducts({ status: 'active' })
+      // Get date range for last 30 days
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 30)
+
+      const filters = {
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString()
+      }
+
+      // Fetch data from backend report APIs in parallel
+      const [
+        productionSummaryData,
+        workCenterUtilizationData,
+        inventorySummaryData,
+        productionEfficiencyData
+      ] = await Promise.all([
+        reportService.getProductionSummary(filters),
+        reportService.getWorkCenterUtilization(filters),
+        reportService.getInventorySummary(),
+        reportService.getProductionEfficiency(filters)
       ])
 
       // Process work center utilization data
-      const workCenterUtilization = workCentersResponse.workCenters.map(wc => ({
-        workCenter: wc.name,
-        utilization: wc.utilization
-      }))
+      const workCenterUtilization = workCenterUtilizationData.data?.utilizationData?.map(wc => ({
+        workCenter: wc.work_center_name,
+        utilization: wc.utilization_percentage,
+        capacity: wc.capacity,
+        totalOrders: wc.total_work_orders
+      })) || []
 
-      // Process inventory data
-      const products = productsResponse.products
-      const totalProducts = products.length
-      const lowStockItems = products.filter(p => p.minStockLevel < 50).length // Placeholder logic
-      const totalValue = products.reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0) // Placeholder calculation
-
-      // Category breakdown (simplified)
+      // Process inventory data for category breakdown
+      const inventoryData = inventorySummaryData.data?.inventoryData || []
       const categoryBreakdown = [
         {
           category: "Raw Materials",
-          count: products.filter(p => p.type === 'raw_material').length,
-          value: products.filter(p => p.type === 'raw_material').reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0)
+          count: inventoryData.filter(p => p.type === 'raw_material').length,
+          value: inventoryData.filter(p => p.type === 'raw_material').reduce((sum, p) => sum + parseFloat(p.stock_value), 0)
         },
         {
           category: "Finished Goods",
-          count: products.filter(p => p.type === 'finished_good').length,
-          value: products.filter(p => p.type === 'finished_good').reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0)
+          count: inventoryData.filter(p => p.type === 'finished_good').length,
+          value: inventoryData.filter(p => p.type === 'finished_good').reduce((sum, p) => sum + parseFloat(p.stock_value), 0)
         },
         {
           category: "Components",
-          count: products.filter(p => p.type === 'work_in_progress').length,
-          value: products.filter(p => p.type === 'work_in_progress').reduce((sum, p) => sum + (p.costPrice * p.minStockLevel), 0)
+          count: inventoryData.filter(p => p.type === 'work_in_progress').length,
+          value: inventoryData.filter(p => p.type === 'work_in_progress').reduce((sum, p) => sum + parseFloat(p.stock_value), 0)
         }
       ]
 
-      // TODO: Replace with real API calls for production and quality metrics
+      // Calculate summary statistics from inventory data
+      const totalProducts = inventoryData.length
+      const lowStockItems = inventoryData.filter(p => parseFloat(p.current_stock) < 50).length
+      const outOfStockItems = inventoryData.filter(p => parseFloat(p.current_stock) === 0).length
+      const totalValue = parseFloat(inventorySummaryData.totalStockValue) || 0
+
+      // Combine all data into the expected format
       const reportData: ReportData = {
         productionSummary: {
-          completionRate: 0, // TODO: Get from manufacturing orders API
-          avgCycleTime: 0,   // TODO: Get from work orders API
+          completionRate: productionSummaryData.manufacturingOrderStats.completion_rate,
+          avgCycleTime: productionEfficiencyData.overallMetrics.avg_actual_duration || 0,
+          totalOrders: productionSummaryData.manufacturingOrderStats.total,
+          completedOrders: productionSummaryData.manufacturingOrderStats.completed,
+          inProgressOrders: productionSummaryData.manufacturingOrderStats.in_progress,
+          pendingOrders: productionSummaryData.manufacturingOrderStats.pending
         },
         qualityMetrics: {
-          firstPassYield: 0, // TODO: Get from quality checks API
-          defectRate: 0,     // TODO: Get from quality checks API
+          firstPassYield: productionEfficiencyData.overallMetrics.completion_rate || 0,
+          defectRate: Math.max(0, 100 - (productionEfficiencyData.overallMetrics.completion_rate || 0)),
+          overallEfficiency: productionEfficiencyData.overallMetrics.overall_efficiency || 0
         },
         workCenterUtilization,
         inventoryReport: {
           totalProducts,
           lowStockItems,
+          outOfStockItems,
           totalValue: Math.round(totalValue),
           categoryBreakdown: categoryBreakdown.filter(cat => cat.count > 0)
         }
@@ -112,9 +145,52 @@ export const useReports = () => {
   }, [fetchReports])
 
   const exportReport = async (format: "pdf" | "excel") => {
-    // Simulate export functionality
-    console.log(`Exporting report as ${format}`)
-    // In a real app, this would trigger a download or call an export API
+    try {
+      if (!reportData) {
+        throw new Error('No report data available to export')
+      }
+
+      // Get date range for export
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 30)
+
+      const filters = {
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString()
+      }
+
+      if (format === "pdf") {
+        // For now, export production summary as CSV since PDF generation requires additional libraries
+        await reportService.exportReport('production-summary', 'csv', filters)
+      } else if (format === "excel") {
+        // For now, export production summary as CSV since Excel generation requires additional libraries
+        await reportService.exportReport('production-summary', 'csv', filters)
+      }
+    } catch (err) {
+      console.error('Error exporting report:', err)
+      // You might want to show a toast notification here
+    }
+  }
+
+  const exportSpecificReport = async (
+    reportType: 'production-summary' | 'work-center-utilization' | 'inventory-summary' | 'production-efficiency',
+    format: 'json' | 'csv' = 'csv'
+  ) => {
+    try {
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 30)
+
+      const filters = {
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString()
+      }
+
+      await reportService.exportReport(reportType, format, filters)
+    } catch (err) {
+      console.error('Error exporting specific report:', err)
+    }
   }
 
   const refreshReports = useCallback(() => {
@@ -126,6 +202,7 @@ export const useReports = () => {
     loading,
     error,
     exportReport,
+    exportSpecificReport,
     refreshReports,
   }
 }

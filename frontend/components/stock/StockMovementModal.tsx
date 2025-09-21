@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { X, Loader2 } from "lucide-react"
-import type { StockMovement, Product } from "@/types"
+import type { StockMovement } from "@/types"
 import { useProducts } from "@/hooks/useProducts"
 
 interface StockMovementModalProps {
@@ -141,7 +141,7 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
                   <SelectContent>
                     {products.map((product) => (
                       <SelectItem key={product.id} value={product.id}>
-                        {product.name} ({product.sku})
+                        {product.name} ({product.code || product.id.slice(0, 8)})
                       </SelectItem>
                     ))}
                   </SelectContent>

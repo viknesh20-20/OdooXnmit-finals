@@ -10,6 +10,7 @@ if (!process.env.DB_NAME) {
   process.env.DB_NAME = 'ERPDB';
 }
 if (!process.env.DB_PASSWORD || process.env.DB_PASSWORD === 'password') {
+  console.log('Overriding DB_PASSWORD');
   process.env.DB_PASSWORD = 'Thalha*7258';
 }
 

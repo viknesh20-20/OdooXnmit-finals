@@ -136,24 +136,24 @@ export class ReportsController {
 
       // Get work center utilization data
       const utilizationData = await sequelize.query(`
-        SELECT 
+        SELECT
           wc.id,
           wc.name,
-          wc.capacity_per_hour,
+          wc.capacity,
           COUNT(wo.id) as total_work_orders,
           SUM(CASE WHEN wo.status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
-          SUM(CASE WHEN wo.status = 'in_progress' THEN 1 ELSE 0 END) as active_orders,
+          SUM(CASE WHEN wo.status = 'in-progress' THEN 1 ELSE 0 END) as active_orders,
           AVG(wo.actual_duration) as avg_duration,
           SUM(wo.actual_duration) as total_duration,
           ROUND(
-            (SUM(wo.actual_duration) / NULLIF(wc.capacity_per_hour * 
+            (SUM(wo.actual_duration) / NULLIF(wc.capacity *
               EXTRACT(EPOCH FROM (:end_date::timestamp - :start_date::timestamp)) / 3600, 0)) * 100, 2
           ) as utilization_percentage
         FROM work_centers wc
         LEFT JOIN work_orders wo ON wc.id = wo.work_center_id
         ${start_date || end_date ? 'AND wo.created_at BETWEEN :start_date AND :end_date' : ''}
         ${work_center_id ? 'WHERE wc.id = :work_center_id' : ''}
-        GROUP BY wc.id, wc.name, wc.capacity_per_hour
+        GROUP BY wc.id, wc.name, wc.capacity
         ORDER BY utilization_percentage DESC
       `, {
         replacements: {

@@ -11,7 +11,7 @@ import type { BOM, BOMComponent, BOMOperation } from "@/types"
 import { generateReference, generateId } from "@/lib/idGenerator"
 import { useWorkCenters } from "@/hooks/useWorkCenters"
 import { useProducts } from "@/hooks/useProducts"
-import { useBOMOperations } from "@/hooks/useBOMOperations"
+
 import { FormError, FieldError } from "@/components/ui/form-error"
 
 interface CreateBOMModalProps {

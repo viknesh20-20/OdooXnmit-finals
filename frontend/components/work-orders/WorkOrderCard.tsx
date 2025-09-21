@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { WorkOrderStatusBadge } from "./WorkOrderStatusBadge"
-import { Play, Pause, CheckCircle, Clock, User, Building2, MessageSquare, Calendar } from "lucide-react"
+import { Play, Pause, CheckCircle, Clock, User, Building2, MessageSquare, Calendar, Edit, Trash2 } from "lucide-react"
 import type { WorkOrder } from "@/types"
 import { format } from "date-fns"
 
@@ -15,9 +15,11 @@ interface WorkOrderCardProps {
   onStart: (id: string) => void
   onPause: (id: string, comments?: string) => void
   onComplete: (id: string, comments?: string) => void
+  onEdit: (workOrder: WorkOrder) => void
+  onDelete: (id: string) => void
 }
 
-export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({ workOrder, onStart, onPause, onComplete }) => {
+export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({ workOrder, onStart, onPause, onComplete, onEdit, onDelete }) => {
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [comment, setComment] = useState("")
 
@@ -114,7 +116,25 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({ workOrder, onStart
             </div>
             <p className="text-sm text-muted-foreground">MO: {workOrder.manufacturingOrderId}</p>
           </div>
-          {getActionButton()}
+          <div className="flex items-center gap-2">
+            {getActionButton()}
+            <Button
+              onClick={() => onEdit(workOrder)}
+              variant="outline"
+              size="sm"
+              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => onDelete(workOrder.id)}
+              variant="outline"
+              size="sm"
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

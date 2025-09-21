@@ -1,0 +1,13 @@
+id,sku,name,type,cost_price,current_stock,stock_value,last_movement_date
+"860d2546-a9a5-4473-8411-62005e43e482","COMP-002","Chair Backrest","work_in_progress","35.0000","25.0001","875.00350000",Sun Sep 21 2025 10:01:59 GMT+0530 (India Standard Time)
+"b3bc9438-0ec1-4313-bbe8-098d21ddaefe","FG-003","Conference Table","finished_good","650.0000","1.0000","650.00000000",Sun Sep 21 2025 07:33:53 GMT+0530 (India Standard Time)
+"6d6e8495-1b01-41b1-90e4-4adc0c6fefc3","RM-003","Wood Varnish","raw_material","35.0000","0","0",
+"f1dd02a3-b975-40ea-b7d3-9b9c36fc44ab","RM-004","Metal Hinges","raw_material","8.5000","0","0",
+"a1106a01-ea34-49d8-8bdc-3438c60f0a93","RM-005","Foam Padding","raw_material","45.0000","0","0",
+"875cb0ad-a1a5-4e3f-a465-9faf11db1290","COMP-001","Table Legs (Set of 4)","work_in_progress","60.0000","0","0",
+"4d538599-e773-4a55-8bac-d04f43d7704d","COMP-003","Drawer Assembly","work_in_progress","85.0000","0","0",
+"e2fded44-8bca-406b-a9ee-ed9681f7f78e","FG-001","Executive Oak Desk","finished_good","450.0000","0","0",
+"c1d110fd-b304-4c30-80f1-0fd764dcc9c1","FG-002","Ergonomic Office Chair","finished_good","180.0000","0","0",
+"474a6b61-ad23-4ce9-8901-9e4d78938f6c","RM-001","Oak Wood Planks","raw_material","25.0000","0","0",
+"dec3fd30-5dde-4650-a290-75024e841a38","FG-004","Storage Cabinet","finished_good","280.0000","0","0",
+"d098560c-5539-4395-9686-27fde7220484","RM-002","Steel Screws","raw_material","0.1500","0","0",

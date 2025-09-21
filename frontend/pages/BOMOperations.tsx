@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
-import { Plus, Search, Filter, Loader2, Settings, Clock, DollarSign, Edit, Trash2 } from "lucide-react"
+import { Search, Filter, Loader2, Settings, Clock, DollarSign, Edit, Trash2 } from "lucide-react"
 import type { BOMOperation } from "@/types"
 
 // Predefined operation types
@@ -23,18 +23,7 @@ const OPERATION_TYPES = [
   { value: 'finishing', label: 'Finishing' }
 ]
 
-const PREDEFINED_OPERATIONS = [
-  'Material Preparation',
-  'Cutting',
-  'Assembly',
-  'Quality Control',
-  'Packaging',
-  'Welding',
-  'Drilling',
-  'Painting',
-  'Testing',
-  'Polishing'
-]
+
 
 interface BOMOperationCardProps {
   operation: BOMOperation
@@ -43,7 +32,6 @@ interface BOMOperationCardProps {
 }
 
 const BOMOperationCard: React.FC<BOMOperationCardProps> = ({ operation, onEdit, onDelete }) => {
-  const totalTime = (operation.duration || 0) + (operation.setupTime || 0) + (operation.teardownTime || 0)
   
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -86,10 +74,10 @@ const BOMOperationCard: React.FC<BOMOperationCardProps> = ({ operation, onEdit, 
         </div>
 
         {/* Work Center */}
-        {operation.workCenter && (
+        {(operation.workCenterName || operation.workCenter) && (
           <div className="text-sm">
             <span className="text-muted-foreground">Work Center: </span>
-            <span className="font-medium">{operation.workCenter.name}</span>
+            <span className="font-medium">{operation.workCenterName || operation.workCenter}</span>
           </div>
         )}
 
@@ -100,23 +88,7 @@ const BOMOperationCard: React.FC<BOMOperationCardProps> = ({ operation, onEdit, 
           </div>
         )}
 
-        {/* Tools and Skills */}
-        {(operation.toolsRequired?.length || operation.skillsRequired?.length) && (
-          <div className="space-y-2">
-            {operation.toolsRequired?.length > 0 && (
-              <div className="text-xs">
-                <span className="font-medium text-muted-foreground">Tools: </span>
-                <span>{operation.toolsRequired.join(', ')}</span>
-              </div>
-            )}
-            {operation.skillsRequired?.length > 0 && (
-              <div className="text-xs">
-                <span className="font-medium text-muted-foreground">Skills: </span>
-                <span>{operation.skillsRequired.join(', ')}</span>
-              </div>
-            )}
-          </div>
-        )}
+
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2 border-t">
@@ -152,7 +124,7 @@ export const BOMOperations: React.FC = () => {
   const [selectedBOM, setSelectedBOM] = useState("")
   const [selectedOperationType, setSelectedOperationType] = useState("")
   const [selectedWorkCenter, setSelectedWorkCenter] = useState("")
-  const [editingOperation, setEditingOperation] = useState<BOMOperation | null>(null)
+
 
   const handleSearch = () => {
     fetchOperations({
@@ -317,7 +289,7 @@ export const BOMOperations: React.FC = () => {
               <BOMOperationCard
                 key={operation.id}
                 operation={operation}
-                onEdit={setEditingOperation}
+                onEdit={(operation) => console.log('Edit operation:', operation)}
                 onDelete={handleDelete}
               />
             ))}

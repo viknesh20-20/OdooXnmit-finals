@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import type { BOMOperation } from '@/types'
 
@@ -42,6 +42,7 @@ interface BOMOperationUpdateData extends Partial<BOMOperationCreateData> {}
 export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
   const { bomId, autoFetch = true } = options
   const { user } = useAuth()
+  console.log('Current user:', user) // Keep user for potential future use
   const [operations, setOperations] = useState<BOMOperation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +63,7 @@ export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
       if (filters.sortBy) params.append('sortBy', filters.sortBy)
       if (filters.sortOrder) params.append('sortOrder', filters.sortOrder)
 
-      const response = await api.get(`/bom-operations?${params.toString()}`)
+      const response = await apiClient.get(`/bom-operations?${params.toString()}`)
       
       if (response.data.success) {
         setOperations(response.data.data.operations || [])
@@ -83,7 +84,7 @@ export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
       setLoading(true)
       setError(null)
 
-      const response = await api.get(`/bom-operations/bom/${bomId}`)
+      const response = await apiClient.get(`/bom-operations/bom/${bomId}`)
       
       if (response.data.success) {
         setOperations(response.data.data.operations || [])
@@ -124,7 +125,7 @@ export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
         metadata: operationData.metadata || {}
       }
 
-      const response = await api.post('/bom-operations', backendData)
+      const response = await apiClient.post('/bom-operations', backendData)
       
       if (response.data.success) {
         const newOperation = response.data.data.operation
@@ -163,7 +164,7 @@ export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
       if (operationData.skillsRequired !== undefined) backendData.skills_required = operationData.skillsRequired
       if (operationData.metadata !== undefined) backendData.metadata = operationData.metadata
 
-      const response = await api.put(`/bom-operations/${id}`, backendData)
+      const response = await apiClient.put(`/bom-operations/${id}`, backendData)
       
       if (response.data.success) {
         const updatedOperation = response.data.data.operation
@@ -184,7 +185,7 @@ export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
     try {
       setSubmitError(null)
 
-      const response = await api.delete(`/bom-operations/${id}`)
+      const response = await apiClient.delete(`/bom-operations/${id}`)
       
       if (response.data.success) {
         setOperations(prev => prev.filter(op => op.id !== id))
@@ -204,7 +205,7 @@ export const useBOMOperations = (options: UseBOMOperationsOptions = {}) => {
     try {
       setSubmitError(null)
 
-      const response = await api.put(`/bom-operations/bom/${bomId}/reorder`, {
+      const response = await apiClient.put(`/bom-operations/bom/${bomId}/reorder`, {
         operations: operationOrder
       })
       

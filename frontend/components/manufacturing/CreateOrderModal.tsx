@@ -19,6 +19,7 @@ import { FormError, FieldError } from "@/components/ui/form-error"
 import { Plus } from "lucide-react"
 import { PRIORITY_LEVELS } from "@/types"
 import { generateReference } from "@/lib/idGenerator"
+import { validateManufacturingOrderForm, hasValidationErrors, type ValidationErrors } from "@/lib/validation/manufacturingOrderValidation"
 
 interface CreateOrderModalProps {
   onOrderCreated: (order: ManufacturingOrder) => void
@@ -34,7 +35,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
 
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errors, setErrors] = useState<ValidationErrors>({})
   const [formData, setFormData] = useState<CreateManufacturingOrderForm>({
     productId: "",
     quantity: 1,
@@ -64,26 +65,9 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onOrderCreat
   }, [formData.productId, boms])
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.productId.trim()) {
-      newErrors.productId = 'Product is required'
-    }
-    if (!formData.bomId.trim()) {
-      newErrors.bomId = 'Bill of Materials is required'
-    }
-    if (formData.quantity <= 0) {
-      newErrors.quantity = 'Quantity must be greater than 0'
-    }
-    if (!formData.dueDate.trim()) {
-      newErrors.dueDate = 'Due date is required'
-    }
-    if (!formData.assigneeId.trim()) {
-      newErrors.assigneeId = 'Assignee is required'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    const validationErrors = validateManufacturingOrderForm(formData)
+    setErrors(validationErrors)
+    return !hasValidationErrors(validationErrors)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

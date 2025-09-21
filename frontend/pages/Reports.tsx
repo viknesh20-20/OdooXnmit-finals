@@ -11,7 +11,7 @@ import { useReports } from "../hooks/useReports"
 import { FileText, Table, RefreshCw, BarChart3 } from "lucide-react"
 
 export const Reports: React.FC = () => {
-  const { reportData, loading, error, exportReport, refreshReports } = useReports()
+  const { reportData, loading, error, exportSpecificReport, refreshReports } = useReports()
 
   if (loading) {
     return (
@@ -87,13 +87,17 @@ export const Reports: React.FC = () => {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            <Button onClick={() => exportReport("pdf")} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={() => exportSpecificReport("production-summary", "csv")} className="bg-blue-600 hover:bg-blue-700">
               <FileText className="w-4 h-4 mr-2" />
-              Export PDF
+              Export Production CSV
             </Button>
-            <Button onClick={() => exportReport("excel")} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => exportSpecificReport("inventory-summary", "csv")} className="bg-green-600 hover:bg-green-700">
               <Table className="w-4 h-4 mr-2" />
-              Export Excel
+              Export Inventory CSV
+            </Button>
+            <Button onClick={() => exportSpecificReport("work-center-utilization", "csv")} className="bg-purple-600 hover:bg-purple-700">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Export Utilization CSV
             </Button>
           </div>
         </div>
@@ -105,7 +109,8 @@ export const Reports: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Completion Rate</p>
-                <p className="text-2xl font-bold text-green-400">{reportData.productionSummary.completionRate}%</p>
+                <p className="text-2xl font-bold text-green-400">{reportData.productionSummary.completionRate.toFixed(1)}%</p>
+                <p className="text-xs text-gray-500">{reportData.productionSummary.completedOrders} of {reportData.productionSummary.totalOrders} orders</p>
               </div>
             </div>
           </CardContent>
@@ -116,7 +121,8 @@ export const Reports: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Avg Cycle Time</p>
-                <p className="text-2xl font-bold text-blue-400">{reportData.productionSummary.avgCycleTime} days</p>
+                <p className="text-2xl font-bold text-blue-400">{reportData.productionSummary.avgCycleTime.toFixed(1)} min</p>
+                <p className="text-xs text-gray-500">Per work order</p>
               </div>
             </div>
           </CardContent>
@@ -126,8 +132,9 @@ export const Reports: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">First Pass Yield</p>
-                <p className="text-2xl font-bold text-green-400">{reportData.qualityMetrics.firstPassYield}%</p>
+                <p className="text-gray-400 text-sm">Overall Efficiency</p>
+                <p className="text-2xl font-bold text-green-400">{reportData.qualityMetrics.overallEfficiency.toFixed(1)}%</p>
+                <p className="text-xs text-gray-500">Production efficiency</p>
               </div>
             </div>
           </CardContent>
@@ -137,8 +144,9 @@ export const Reports: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Defect Rate</p>
-                <p className="text-2xl font-bold text-red-400">{reportData.qualityMetrics.defectRate}%</p>
+                <p className="text-gray-400 text-sm">Low Stock Items</p>
+                <p className="text-2xl font-bold text-red-400">{reportData.inventoryReport.lowStockItems}</p>
+                <p className="text-xs text-gray-500">Need attention</p>
               </div>
             </div>
           </CardContent>

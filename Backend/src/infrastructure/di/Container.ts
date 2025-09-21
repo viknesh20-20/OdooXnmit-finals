@@ -1,5 +1,9 @@
 import { Container } from 'inversify';
 import 'reflect-metadata';
+import dotenv from 'dotenv';
+
+// Load environment variables first
+dotenv.config({ override: true });
 
 // Domain
 import { ManufacturingOrderDomainService } from '@domain/services/ManufacturingOrderDomainService';

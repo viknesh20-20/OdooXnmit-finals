@@ -31,11 +31,11 @@ import { formatDistanceToNow } from "date-fns"
 
 export const DashboardOverview: React.FC = () => {
   const navigate = useNavigate()
-  const { orders, loading: ordersLoading, error: ordersError } = useManufacturingOrders()
-  const { workOrders, loading: workOrdersLoading, error: workOrdersError } = useWorkOrders()
-  const { workCenters, loading: workCentersLoading, error: workCentersError } = useWorkCenters()
-  const { products, loading: productsLoading, error: productsError } = useProducts()
-  const { movements, loading: movementsLoading, error: movementsError } = useStockMovements()
+  const { orders } = useManufacturingOrders()
+  const { workOrders } = useWorkOrders()
+  const { workCenters } = useWorkCenters()
+  const { products } = useProducts()
+  const { movements } = useStockMovements()
 
 
 
