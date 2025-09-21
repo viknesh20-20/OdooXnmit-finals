@@ -103,22 +103,22 @@ export const useReports = () => {
       const totalProducts = inventoryData.length
       const lowStockItems = inventoryData.filter(p => parseFloat(p.current_stock) < 50).length
       const outOfStockItems = inventoryData.filter(p => parseFloat(p.current_stock) === 0).length
-      const totalValue = parseFloat(inventorySummaryData.totalStockValue) || 0
+      const totalValue = parseFloat(inventorySummaryData.data?.totalStockValue) || 0
 
       // Combine all data into the expected format
       const reportData: ReportData = {
         productionSummary: {
-          completionRate: productionSummaryData.manufacturingOrderStats.completion_rate,
-          avgCycleTime: productionEfficiencyData.overallMetrics.avg_actual_duration || 0,
-          totalOrders: productionSummaryData.manufacturingOrderStats.total,
-          completedOrders: productionSummaryData.manufacturingOrderStats.completed,
-          inProgressOrders: productionSummaryData.manufacturingOrderStats.in_progress,
-          pendingOrders: productionSummaryData.manufacturingOrderStats.pending
+          completionRate: productionSummaryData.data?.manufacturingOrderStats?.completion_rate || 0,
+          avgCycleTime: productionEfficiencyData.data?.overallMetrics?.avg_actual_duration || 0,
+          totalOrders: productionSummaryData.data?.manufacturingOrderStats?.total || 0,
+          completedOrders: productionSummaryData.data?.manufacturingOrderStats?.completed || 0,
+          inProgressOrders: productionSummaryData.data?.manufacturingOrderStats?.in_progress || 0,
+          pendingOrders: productionSummaryData.data?.manufacturingOrderStats?.pending || 0
         },
         qualityMetrics: {
-          firstPassYield: productionEfficiencyData.overallMetrics.completion_rate || 0,
-          defectRate: Math.max(0, 100 - (productionEfficiencyData.overallMetrics.completion_rate || 0)),
-          overallEfficiency: productionEfficiencyData.overallMetrics.overall_efficiency || 0
+          firstPassYield: productionEfficiencyData.data?.overallMetrics?.completion_rate || 0,
+          defectRate: Math.max(0, 100 - (productionEfficiencyData.data?.overallMetrics?.completion_rate || 0)),
+          overallEfficiency: productionEfficiencyData.data?.overallMetrics?.overall_efficiency || 0
         },
         workCenterUtilization,
         inventoryReport: {
